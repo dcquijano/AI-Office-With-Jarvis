@@ -3,7 +3,13 @@ import fs from 'node:fs/promises';
 import http from 'node:http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { AGENT_TEAM, getAgentById, JARVIS_CONTROLLER, JARVIS_STAGES } from './jarvis/catalog.js';
+import {
+  AGENT_TEAM,
+  DEPARTMENTS,
+  getAgentById,
+  JARVIS_CONTROLLER,
+  JARVIS_STAGES
+} from './jarvis/catalog.js';
 import { chatWithAgent } from './jarvis/agentChat.js';
 import { runMissionPipeline } from './jarvis/executor.js';
 import { answerAsJarvis, GUIDED_TOUR_STEPS, PRESET_MISSIONS } from './jarvis/guide.js';
@@ -278,6 +284,7 @@ export function createApp(options = {}) {
           {
             controller: JARVIS_CONTROLLER,
             stages: JARVIS_STAGES,
+            departments: DEPARTMENTS,
             team: AGENT_TEAM
           },
           requestId

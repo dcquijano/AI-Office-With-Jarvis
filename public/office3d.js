@@ -1,158 +1,241 @@
 /**
- * Interactive 3D Isometric AI Office & Multi-Sport Campus Engine.
- * Includes:
- * - 8-Specialist 3D Office Suites + J.A.R.V.I.S. 3D Core
- * - Pickleball Court (3D net + rallying ball + paddles)
- * - Olympic Swimming Pool (water shimmer, lane ropes, lap swimming & splash rings)
- * - Basketball Court (hardwood court, 3D hoop/backboard, shooting arc ball)
- * - Fitness Gym (treadmills, squat/bench rack with animated lifting, yoga mat)
- * - Futsal / Soccer Pitch (3D goalposts, striped turf, passing ball)
- * - Table Tennis (Ping-Pong) & Rooftop Garden + Coffee & Lounge Cafe
+ * Interactive 3D Isometric AI Office & Multi-Department Campus Engine.
+ * Organizes the workspace into 6 spacious, dedicated Departments:
+ * 1. Executive & AI Core Dept (J.A.R.V.I.S. AI Brain, CEO Suite, Executive Boardroom)
+ * 2. Software Engineering Dept (Systems/Backend Vulcan, Web/Frontend Nova)
+ * 3. Design & QA Assurance Dept (UI/UX Iris, QA Lab Vera)
+ * 4. Infrastructure & Security Dept (Server & Compute Vault, Security Aegis, DevOps Orion)
+ * 5. Strategy, Research & Lobby Dept (Reception Lobby, Strategy Athena, Research Sage)
+ * 6. Wellness, Sports & Lounge Dept (Pickleball, Olympic Pool, Gym, Basketball, Soccer, Ping-Pong, Coffee, Bar & Dance)
  */
 
-const LOGICAL_WIDTH = 960;
-const LOGICAL_HEIGHT = 580;
+const LOGICAL_WIDTH = 1200;
+const LOGICAL_HEIGHT = 720;
+
+const DEPARTMENT_ZONES = [
+  {
+    id: 'infrastructure',
+    label: 'INFRASTRUCTURE & SECURITY DEPT',
+    x1: -21.5,
+    y1: -13.4,
+    x2: -8.2,
+    y2: -1.6,
+    fill: '#111d36',
+    accent: '#60a5fa',
+    focus: { x: -14.8, y: -7.5, zoom: 1.45 }
+  },
+  {
+    id: 'strategy',
+    label: 'STRATEGY, RESEARCH & LOBBY DEPT',
+    x1: -21.5,
+    y1: 1.6,
+    x2: -8.2,
+    y2: 13.4,
+    fill: '#171b38',
+    accent: '#a78bfa',
+    focus: { x: -14.8, y: 7.5, zoom: 1.45 }
+  },
+  {
+    id: 'engineering',
+    label: 'SOFTWARE ENGINEERING DEPT',
+    x1: -6.3,
+    y1: -13.4,
+    x2: 8.8,
+    y2: -5.8,
+    fill: '#10223b',
+    accent: '#22d3ee',
+    focus: { x: 1.2, y: -9.5, zoom: 1.45 }
+  },
+  {
+    id: 'executive',
+    label: 'EXECUTIVE & J.A.R.V.I.S. CORE DEPT',
+    x1: -6.3,
+    y1: -4.4,
+    x2: 8.8,
+    y2: 4.4,
+    fill: '#19223c',
+    accent: '#fbbf24',
+    focus: { x: 1.4, y: 0.0, zoom: 1.45 }
+  },
+  {
+    id: 'design-qa',
+    label: 'DESIGN & QA ASSURANCE DEPT',
+    x1: -6.3,
+    y1: 5.8,
+    x2: 8.8,
+    y2: 13.4,
+    fill: '#20183a',
+    accent: '#f472b6',
+    focus: { x: 1.2, y: 9.5, zoom: 1.45 }
+  },
+  {
+    id: 'wellness',
+    label: 'WELLNESS, SPORTS & LOUNGE DEPT',
+    x1: 10.6,
+    y1: -13.4,
+    x2: 21.8,
+    y2: 13.4,
+    fill: '#122436',
+    accent: '#34d399',
+    focus: { x: 16.4, y: 0.0, zoom: 1.18 }
+  }
+];
 
 const STATIONS = {
-  jarvis: { x: -4.4, y: 0, z: 0, label: 'J.A.R.V.I.S. AI Brain', accent: '#38bdf8' },
+  jarvis: { x: -3.4, y: 0, z: 0, label: 'J.A.R.V.I.S. AI Brain', accent: '#38bdf8' },
   ceo: {
-    x: -0.7,
+    x: 1.9,
     y: 0.0,
-    deskX: -0.7,
-    deskY: -0.6,
-    chairX: -0.7,
+    deskX: 1.9,
+    deskY: -1.1,
+    chairX: 1.9,
     chairY: 0.65,
-    huddleX: -2.4,
+    huddleX: -0.9,
     huddleY: 0.0,
-    label: 'CEO Office',
+    box: { x1: -0.3, y1: -3.6, x2: 4.1, y2: 3.6 },
+    label: 'CEO Executive Suite',
     accent: '#fbbf24',
     rugColor: '#451a03'
   },
   athena: {
-    x: -8.2,
-    y: -6.0,
-    deskX: -8.7,
-    deskY: -6.6,
-    chairX: -8.1,
-    chairY: -5.4,
-    huddleX: -5.6,
-    huddleY: -1.4,
+    x: -11.25,
+    y: 4.7,
+    deskX: -11.25,
+    deskY: 4.0,
+    chairX: -11.25,
+    chairY: 5.4,
+    huddleX: -4.9,
+    huddleY: 0.9,
+    box: { x1: -13.8, y1: 2.4, x2: -8.7, y2: 7.0 },
     label: 'Strategy · Athena',
     accent: '#a78bfa',
     rugColor: '#312e81'
   },
+  sage: {
+    x: -11.25,
+    y: 10.1,
+    deskX: -11.25,
+    deskY: 9.4,
+    chairX: -11.25,
+    chairY: 10.8,
+    huddleX: -4.9,
+    huddleY: 1.9,
+    box: { x1: -13.8, y1: 7.8, x2: -8.7, y2: 12.4 },
+    label: 'Research · Sage',
+    accent: '#34d399',
+    rugColor: '#064e3b'
+  },
   vulcan: {
-    x: -2.8,
-    y: -6.0,
-    deskX: -2.8,
-    deskY: -6.6,
-    chairX: -2.8,
-    chairY: -5.4,
-    huddleX: -4.0,
-    huddleY: -1.7,
+    x: -2.45,
+    y: -9.45,
+    deskX: -2.45,
+    deskY: -10.35,
+    chairX: -2.45,
+    chairY: -8.7,
+    huddleX: -3.3,
+    huddleY: -1.9,
+    box: { x1: -5.7, y1: -12.5, x2: 0.8, y2: -6.4 },
     label: 'Systems · Vulcan',
     accent: '#fb923c',
     rugColor: '#431407'
   },
   nova: {
-    x: 2.2,
-    y: -6.0,
-    deskX: 2.2,
-    deskY: -6.6,
-    chairX: 2.2,
-    chairY: -5.4,
-    huddleX: -2.9,
-    huddleY: -1.4,
+    x: 4.95,
+    y: -9.45,
+    deskX: 4.95,
+    deskY: -10.35,
+    chairX: 4.95,
+    chairY: -8.7,
+    huddleX: -1.6,
+    huddleY: -1.9,
+    box: { x1: 1.7, y1: -12.5, x2: 8.2, y2: -6.4 },
     label: 'Web Dev · Nova',
     accent: '#22d3ee',
     rugColor: '#083344'
   },
   aegis: {
-    x: -8.2,
-    y: 0.0,
-    deskX: -8.8,
-    deskY: 0.0,
-    chairX: -7.8,
-    chairY: 0.2,
-    huddleX: -6.0,
-    huddleY: 0.0,
+    x: -11.25,
+    y: -10.0,
+    deskX: -11.25,
+    deskY: -10.7,
+    chairX: -11.25,
+    chairY: -9.2,
+    huddleX: -5.1,
+    huddleY: -1.5,
+    box: { x1: -13.8, y1: -12.4, x2: -8.7, y2: -7.6 },
     label: 'Security · Aegis',
     accent: '#facc15',
     rugColor: '#422006'
   },
   orion: {
-    x: 2.5,
-    y: 0.0,
-    deskX: 2.9,
-    deskY: 0.0,
-    chairX: 1.9,
-    chairY: 0.2,
-    huddleX: 1.2,
-    huddleY: 0.0,
+    x: -11.25,
+    y: -4.5,
+    deskX: -11.25,
+    deskY: -5.2,
+    chairX: -11.25,
+    chairY: -3.7,
+    huddleX: -5.1,
+    huddleY: -0.2,
+    box: { x1: -13.8, y1: -6.8, x2: -8.7, y2: -2.2 },
     label: 'DevOps · Orion',
     accent: '#60a5fa',
     rugColor: '#172554'
   },
-  sage: {
-    x: -8.2,
-    y: 6.0,
-    deskX: -8.7,
-    deskY: 6.6,
-    chairX: -8.1,
-    chairY: 5.4,
-    huddleX: -5.6,
-    huddleY: 1.4,
-    label: 'Research · Sage',
-    accent: '#34d399',
-    rugColor: '#064e3b'
-  },
   vera: {
-    x: -2.8,
-    y: 6.0,
-    deskX: -2.8,
-    deskY: 6.6,
-    chairX: -2.8,
-    chairY: 5.4,
-    huddleX: -4.0,
-    huddleY: 1.7,
+    x: -2.45,
+    y: 9.45,
+    deskX: -2.45,
+    deskY: 8.55,
+    chairX: -2.45,
+    chairY: 10.2,
+    huddleX: -3.3,
+    huddleY: 1.9,
+    box: { x1: -5.7, y1: 6.4, x2: 0.8, y2: 12.5 },
     label: 'QA Lab · Vera',
     accent: '#c084fc',
     rugColor: '#3b0764'
   },
   iris: {
-    x: 2.2,
-    y: 6.0,
-    deskX: 2.2,
-    deskY: 6.6,
-    chairX: 2.2,
-    chairY: 5.4,
-    huddleX: -2.9,
-    huddleY: 1.4,
+    x: 4.95,
+    y: 9.45,
+    deskX: 4.95,
+    deskY: 8.55,
+    chairX: 4.95,
+    chairY: 10.2,
+    huddleX: -1.6,
+    huddleY: 1.9,
+    box: { x1: 1.7, y1: 6.4, x2: 8.2, y2: 12.5 },
     label: 'UI Design · Iris',
     accent: '#f472b6',
     rugColor: '#500724'
   }
 };
 
+const INFRA_ROOMS = {
+  serverRoom: { x1: -21.0, y1: -12.4, x2: -14.6, y2: -2.4, cx: -17.8, cy: -7.4, label: 'SERVER & COMPUTE VAULT', accent: '#38bdf8' },
+  lobbyRoom: { x1: -21.0, y1: 2.4, x2: -14.6, y2: 12.4, cx: -17.8, cy: 7.4, label: 'RECEPTION LOBBY', accent: '#6ee7b7' },
+  conferenceRoom: { x1: 4.7, y1: -3.6, x2: 8.3, y2: 3.6, cx: 6.5, cy: 0.0, label: 'EXECUTIVE BOARDROOM', accent: '#c4b5fd' }
+};
+
 const REC_SLOTS = [
-  { key: 'pickleballA', group: 'pickleball', x: 5.8, y: -6.6, activity: 'pickleball', msg: 'Serving!' },
-  { key: 'pickleballB', group: 'pickleball', x: 9.0, y: -6.6, activity: 'pickleball', msg: 'Ready!' },
-  { key: 'swimLane1', group: 'swim', x: 11.7, y: -7.0, activity: 'swim', msg: 'Swimming laps!' },
-  { key: 'swimLane2', group: 'swim', x: 13.5, y: -4.5, activity: 'swim', msg: 'Freestyle lap!' },
-  { key: 'gymTreadmill1', group: 'gym', x: 5.8, y: -1.8, activity: 'gym-run', msg: 'Cardio run' },
-  { key: 'gymTreadmill2', group: 'gym', x: 7.2, y: -1.8, activity: 'gym-run', msg: 'Sprint set' },
-  { key: 'gymWeights', group: 'gym', x: 8.9, y: -1.3, activity: 'gym-lift', msg: 'Bench & weights' },
-  { key: 'bball1', group: 'basketball', x: 6.3, y: 2.5, activity: 'basketball', msg: '3-pointer!' },
-  { key: 'bball2', group: 'basketball', x: 7.8, y: 4.1, activity: 'basketball', msg: 'Dribbling!' },
-  { key: 'soccer1', group: 'soccer', x: 11.6, y: 0.1, activity: 'soccer', msg: 'Passing!' },
-  { key: 'soccer2', group: 'soccer', x: 13.2, y: 1.5, activity: 'soccer', msg: 'Goal shot!' },
-  { key: 'pingpong1', group: 'pingpong', x: 11.4, y: 4.8, activity: 'pingpong', msg: 'Ping-pong!' },
-  { key: 'pingpong2', group: 'pingpong', x: 13.4, y: 4.8, activity: 'pingpong', msg: 'Fast rally!' },
-  { key: 'coffeeBar', group: 'coffee', x: 6.2, y: 7.7, activity: 'coffee', msg: 'Espresso break' },
-  { key: 'loungeSofa', group: 'coffee', x: 8.7, y: 7.8, activity: 'lounge', msg: 'Chilling' },
-  { key: 'drinksBar', group: 'bar', x: 11.1, y: 8.0, activity: 'bar', msg: 'Cold drinks!' },
-  { key: 'danceFloor1', group: 'dance', x: 12.8, y: 7.7, activity: 'dance', msg: 'Dancing!' },
-  { key: 'danceFloor2', group: 'dance', x: 14.0, y: 8.3, activity: 'dance', msg: 'Party mode!' }
+  { key: 'pickleballA', group: 'pickleball', x: 12.2, y: -9.9, activity: 'pickleball', msg: 'Serving!' },
+  { key: 'pickleballB', group: 'pickleball', x: 14.8, y: -9.9, activity: 'pickleball', msg: 'Ready!' },
+  { key: 'swimLane1', group: 'swim', x: 18.1, y: -9.5, activity: 'swim', msg: 'Swimming laps!' },
+  { key: 'swimLane2', group: 'swim', x: 20.0, y: -7.2, activity: 'swim', msg: 'Freestyle lap!' },
+  { key: 'gymTreadmill1', group: 'gym', x: 12.0, y: -4.0, activity: 'gym-run', msg: 'Cardio run' },
+  { key: 'gymTreadmill2', group: 'gym', x: 13.3, y: -4.0, activity: 'gym-run', msg: 'Sprint set' },
+  { key: 'gymWeights', group: 'gym', x: 14.9, y: -3.2, activity: 'gym-lift', msg: 'Bench & weights' },
+  { key: 'bball1', group: 'basketball', x: 12.1, y: 2.7, activity: 'basketball', msg: '3-pointer!' },
+  { key: 'bball2', group: 'basketball', x: 13.6, y: 4.3, activity: 'basketball', msg: 'Dribbling!' },
+  { key: 'soccer1', group: 'soccer', x: 17.6, y: -0.6, activity: 'soccer', msg: 'Passing!' },
+  { key: 'soccer2', group: 'soccer', x: 19.4, y: 0.8, activity: 'soccer', msg: 'Goal shot!' },
+  { key: 'pingpong1', group: 'pingpong', x: 17.8, y: 5.8, activity: 'pingpong', msg: 'Ping-pong!' },
+  { key: 'pingpong2', group: 'pingpong', x: 19.8, y: 5.8, activity: 'pingpong', msg: 'Fast rally!' },
+  { key: 'coffeeBar', group: 'coffee', x: 12.3, y: 10.6, activity: 'coffee', msg: 'Espresso break' },
+  { key: 'loungeSofa', group: 'coffee', x: 14.7, y: 10.8, activity: 'lounge', msg: 'Chilling' },
+  { key: 'drinksBar', group: 'bar', x: 17.5, y: 10.4, activity: 'bar', msg: 'Cold drinks!' },
+  { key: 'danceFloor1', group: 'dance', x: 19.4, y: 10.2, activity: 'dance', msg: 'Dancing!' },
+  { key: 'danceFloor2', group: 'dance', x: 20.6, y: 11.2, activity: 'dance', msg: 'Party mode!' }
 ];
 
 const CHARACTER_STYLE = {
@@ -231,21 +314,24 @@ export class Office3DScene {
     this.mission = null;
     this.selectedDeskId = 'jarvis';
     this.tourTarget = null;
+    this.activeDepartmentId = null;
+    this.dragHoverId = null;
 
     this.yaw = Math.PI * 0.24;
     this.targetYaw = this.yaw;
-    this.zoom = 0.92;
-    this.targetZoom = 0.92;
-    this.focusOffsetX = 0.2;
-    this.targetFocusOffsetX = 0.2;
-    this.focusOffsetY = 0;
-    this.targetFocusOffsetY = 0;
+    this.zoom = 1.0;
+    this.targetZoom = 1.0;
+    this.focusOffsetX = 0.0;
+    this.targetFocusOffsetX = 0.0;
+    this.focusOffsetY = 0.0;
+    this.targetFocusOffsetY = 0.0;
     this.tilt = 0.52;
     this.upgrades = {
       deskTier: 1,
       brainLinkTier: 1,
       decorTier: 1,
-      uiTheme: 'stark-cyan'
+      uiTheme: 'stark-cyan',
+      rooms: {}
     };
     this.isDragging = false;
     this.dragMoved = false;
@@ -305,7 +391,7 @@ export class Office3DScene {
       (ev) => {
         ev.preventDefault();
         const delta = ev.deltaY > 0 ? -0.08 : 0.08;
-        this.targetZoom = clamp(this.targetZoom + delta, 0.65, 1.55);
+        this.targetZoom = clamp(this.targetZoom + delta, 0.72, 2.2);
       },
       { passive: false }
     );
@@ -316,31 +402,46 @@ export class Office3DScene {
   }
 
   adjustZoom(delta) {
-    this.targetZoom = clamp(this.targetZoom + delta, 0.65, 1.9);
+    this.targetZoom = clamp(this.targetZoom + delta, 0.72, 2.2);
   }
 
   focusCeoOffice(enabled) {
     if (enabled) {
-      this.targetFocusOffsetX = -1.9;
-      this.targetFocusOffsetY = 0;
-      this.targetZoom = 1.65;
+      this.activeDepartmentId = 'executive';
+      this.targetFocusOffsetX = STATIONS.ceo.x;
+      this.targetFocusOffsetY = STATIONS.ceo.y;
+      this.targetZoom = 1.95;
       this.targetYaw = Math.PI * 0.22;
     } else {
       this.resetCamera();
     }
   }
 
-  focusRoom(wx, wy, zoom = 1.55) {
+  focusDepartment(departmentId) {
+    const zone = DEPARTMENT_ZONES.find((z) => z.id === departmentId);
+    if (!zone) {
+      this.resetCamera();
+      return;
+    }
+    this.activeDepartmentId = zone.id;
+    this.targetFocusOffsetX = zone.focus.x;
+    this.targetFocusOffsetY = zone.focus.y;
+    this.targetZoom = zone.focus.zoom;
+  }
+
+  focusRoom(wx, wy, zoom = 1.7) {
+    this.activeDepartmentId = null;
     this.targetFocusOffsetX = wx;
     this.targetFocusOffsetY = wy;
     this.targetZoom = zoom;
   }
 
   resetCamera() {
+    this.activeDepartmentId = null;
     this.targetYaw = Math.PI * 0.24;
-    this.targetZoom = 0.92;
-    this.targetFocusOffsetX = 0.2;
-    this.targetFocusOffsetY = 0;
+    this.targetZoom = 1.0;
+    this.targetFocusOffsetX = 0.0;
+    this.targetFocusOffsetY = 0.0;
   }
 
   getRoomTier(roomId) {
@@ -367,6 +468,20 @@ export class Office3DScene {
     return null;
   }
 
+  getDropTargetAt(sx, sy) {
+    const hit = this.pickAt(sx, sy);
+    if (!hit || hit.startsWith('room:')) return null;
+    return hit;
+  }
+
+  setDragHoverLogical(sx, sy) {
+    this.dragHoverId = this.getDropTargetAt(sx, sy);
+  }
+
+  clearDragHover() {
+    this.dragHoverId = null;
+  }
+
   project(wx, wy, wz = 0) {
     const cx = wx - this.focusOffsetX;
     const cy = wy - this.focusOffsetY;
@@ -374,7 +489,7 @@ export class Office3DScene {
     const sin = Math.sin(this.yaw);
     const rx = cx * cos - cy * sin;
     const ry = cx * sin + cy * cos;
-    const scale = 17.6 * this.zoom;
+    const scale = 18.8 * this.zoom;
     return {
       sx: LOGICAL_WIDTH * 0.5 + rx * scale,
       sy: LOGICAL_HEIGHT * 0.54 + ry * scale * this.tilt - wz * scale * 0.95,
@@ -435,8 +550,13 @@ export class Office3DScene {
     if (!actor || !st) return;
 
     if (zoneGroup === 'computer') {
-      actor.slotKey = `computer:${agentId}`;
-      this.setActorGoal(actor, st.chairX, st.chairY, 'at-computer', 'Back at desk!');
+      if (this.getRoomTier(agentId) === 0) {
+        actor.slotKey = `huddle:${agentId}`;
+        this.setActorGoal(actor, st.huddleX, st.huddleY, 'briefing', 'Build my office!');
+      } else {
+        actor.slotKey = `computer:${agentId}`;
+        this.setActorGoal(actor, st.chairX, st.chairY, 'at-computer', 'Back at desk!');
+      }
       this.onStatusChange();
       return;
     }
@@ -657,7 +777,7 @@ export class Office3DScene {
           actor.walking = false;
           stateChanged = true;
         } else {
-          const speed = this.mission?.status === 'running' ? 4.8 : 2.5;
+          const speed = this.mission?.status === 'running' ? 5.2 : 2.8;
           const step = Math.min(dist, speed * dt);
           actor.x += (dx / dist) * step;
           actor.y += (dy / dist) * step;
@@ -797,7 +917,7 @@ export class Office3DScene {
     ctx.stroke();
   }
 
-  drawFloorQuad(ctx, x1, y1, x2, y2, fill, stroke = null) {
+  drawFloorQuad(ctx, x1, y1, x2, y2, fill, stroke = null, lineWidth = 1.3) {
     const a = this.project(x1, y1, 0);
     const b = this.project(x2, y1, 0);
     const c = this.project(x2, y2, 0);
@@ -814,7 +934,7 @@ export class Office3DScene {
 
     if (stroke) {
       ctx.strokeStyle = stroke;
-      ctx.lineWidth = 1.3;
+      ctx.lineWidth = lineWidth;
       ctx.stroke();
     }
   }
@@ -845,77 +965,165 @@ export class Office3DScene {
     ctx.save();
     ctx.scale(dpr, dpr);
 
-    const bg = ctx.createRadialGradient(LOGICAL_WIDTH * 0.5, LOGICAL_HEIGHT * 0.45, 60, LOGICAL_WIDTH * 0.5, LOGICAL_HEIGHT * 0.5, 580);
+    const bg = ctx.createRadialGradient(
+      LOGICAL_WIDTH * 0.5,
+      LOGICAL_HEIGHT * 0.45,
+      80,
+      LOGICAL_WIDTH * 0.5,
+      LOGICAL_HEIGHT * 0.5,
+      740
+    );
     bg.addColorStop(0, '#10213f');
     bg.addColorStop(1, '#060c18');
     ctx.fillStyle = bg;
     ctx.fillRect(0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT);
 
-    // 1. Expanded 3-Wing Campus Platform (West Server/Boardroom/Lobby + Center Role Suites + East Sports/Bar)
-    this.drawBox3D(ctx, 0.3, 0, -0.45, 30.8, 19.6, 0.45, '#1b2944');
-    this.drawFloorQuad(ctx, -15.1, -9.8, 15.7, 9.8, '#1d2b46', 'rgba(56, 189, 248, 0.35)');
+    // 1. Expanded Multi-Department Campus Platform (44.6 x 28.4)
+    this.drawBox3D(ctx, 0.0, 0.0, -0.55, 44.6, 28.4, 0.55, '#162138');
+    this.drawFloorQuad(ctx, -22.3, -14.2, 22.3, 14.2, '#18243d', 'rgba(56, 189, 248, 0.35)', 1.5);
 
-    // Office & Infrastructure Atrium Flooring & Luminous Runway Lines
-    this.drawFloorQuad(ctx, -14.7, -9.4, 4.1, 9.4, '#18243d', 'rgba(56, 189, 248, 0.35)');
-    for (let gx = -14; gx <= 4; gx += 2) {
-      this.drawLine3D(ctx, gx, -9.4, 0.01, gx, 9.4, 0.01, 'rgba(148, 163, 184, 0.09)', 1);
+    for (let gx = -21; gx <= 21; gx += 3) {
+      this.drawLine3D(ctx, gx, -14.2, 0.01, gx, 14.2, 0.01, 'rgba(148, 163, 184, 0.07)', 1);
     }
-    for (let gy = -9; gy <= 9; gy += 2) {
-      this.drawLine3D(ctx, -14.7, gy, 0.01, 4.1, gy, 0.01, 'rgba(148, 163, 184, 0.09)', 1);
+    for (let gy = -12; gy <= 12; gy += 3) {
+      this.drawLine3D(ctx, -22.3, gy, 0.01, 22.3, gy, 0.01, 'rgba(148, 163, 184, 0.07)', 1);
     }
 
-    // West & East Walkway Spines
-    this.drawFloorQuad(ctx, -10.5, -9.4, -10.1, 9.4, 'rgba(56, 189, 248, 0.14)');
-    this.drawFloorQuad(ctx, 4.0, -9.4, 4.9, 9.4, 'rgba(56, 189, 248, 0.16)');
-    this.drawLine3D(ctx, 4.05, -9.4, 0.02, 4.05, 9.4, 0.02, 'rgba(56, 189, 248, 0.55)', 1.6);
-    this.drawLine3D(ctx, 4.85, -9.4, 0.02, 4.85, 9.4, 0.02, 'rgba(52, 211, 153, 0.45)', 1.6);
+    // Luminous Campus Walkways separating Departments
+    this.drawFloorQuad(ctx, -7.8, -14.0, -6.7, 14.0, 'rgba(56, 189, 248, 0.12)');
+    this.drawFloorQuad(ctx, 9.2, -14.0, 10.2, 14.0, 'rgba(52, 211, 153, 0.14)');
+    this.drawFloorQuad(ctx, -21.8, -1.0, -7.8, 1.0, 'rgba(167, 139, 250, 0.1)');
+    this.drawLine3D(ctx, 9.25, -14.0, 0.02, 9.25, 14.0, 0.02, 'rgba(56, 189, 248, 0.45)', 1.5);
+    this.drawLine3D(ctx, 10.15, -14.0, 0.02, 10.15, 14.0, 0.02, 'rgba(52, 211, 153, 0.45)', 1.5);
 
-    // 1b. West Infrastructure & Meeting Rooms (Server Vault, Executive Boardroom, Reception Lobby)
+    // 1b. Dedicated Department Zones
+    for (const dept of DEPARTMENT_ZONES) {
+      const focused = this.activeDepartmentId === dept.id;
+      this.drawFloorQuad(
+        ctx,
+        dept.x1,
+        dept.y1,
+        dept.x2,
+        dept.y2,
+        dept.fill,
+        dept.accent,
+        focused ? 2.4 : 1.35
+      );
+    }
+
+    // 2. Infrastructure Wing Rooms (Server Vault, Reception Lobby, Executive Boardroom)
     const serverTier = this.getRoomTier('serverRoom');
-    const confTier = this.getRoomTier('conferenceRoom');
     const lobbyTier = this.getRoomTier('lobbyRoom');
+    const confTier = this.getRoomTier('conferenceRoom');
 
     if (serverTier === 0) {
-      this.drawBlueprintPlot(ctx, -14.4, -8.8, -10.7, -3.2, 'BUILD: SERVER ROOM', 'serverRoom');
+      this.drawBlueprintPlot(
+        ctx,
+        INFRA_ROOMS.serverRoom.x1,
+        INFRA_ROOMS.serverRoom.y1,
+        INFRA_ROOMS.serverRoom.x2,
+        INFRA_ROOMS.serverRoom.y2,
+        'BUILD: SERVER VAULT',
+        'serverRoom'
+      );
     } else {
-      this.drawFloorQuad(ctx, -14.4, -8.8, -10.7, -3.2, '#0e1e38', serverTier >= 2 ? '#38bdf8' : 'rgba(56, 189, 248, 0.55)');
-    }
-
-    if (confTier === 0) {
-      this.drawBlueprintPlot(ctx, -14.4, -2.4, -10.7, 2.4, 'BUILD: BOARDROOM', 'conferenceRoom');
-    } else {
-      this.drawFloorQuad(ctx, -14.4, -2.4, -10.7, 2.4, '#212e4a', confTier >= 2 ? '#a78bfa' : 'rgba(167, 139, 250, 0.5)');
+      this.drawFloorQuad(
+        ctx,
+        INFRA_ROOMS.serverRoom.x1,
+        INFRA_ROOMS.serverRoom.y1,
+        INFRA_ROOMS.serverRoom.x2,
+        INFRA_ROOMS.serverRoom.y2,
+        '#0c1a33',
+        serverTier >= 2 ? '#38bdf8' : 'rgba(56, 189, 248, 0.55)'
+      );
     }
 
     if (lobbyTier === 0) {
-      this.drawBlueprintPlot(ctx, -14.4, 3.2, -10.7, 8.8, 'BUILD: LOBBY', 'lobbyRoom');
+      this.drawBlueprintPlot(
+        ctx,
+        INFRA_ROOMS.lobbyRoom.x1,
+        INFRA_ROOMS.lobbyRoom.y1,
+        INFRA_ROOMS.lobbyRoom.x2,
+        INFRA_ROOMS.lobbyRoom.y2,
+        'BUILD: LOBBY',
+        'lobbyRoom'
+      );
     } else {
-      this.drawFloorQuad(ctx, -14.4, 3.2, -10.7, 8.8, '#28233d', lobbyTier >= 2 ? '#34d399' : 'rgba(52, 211, 153, 0.5)');
-    }
-
-    // 2. Role Specialist Office Suites (Tier 0 Blueprint Plot vs Tier 1-3 Built Room)
-    for (const agent of this.team) {
-      const st = STATIONS[agent.id];
-      if (!st) continue;
-      const tier = this.getRoomTier(agent.id);
-      if (tier === 0) {
-        this.drawBlueprintPlot(ctx, st.x - 1.8, st.y - 1.8, st.x + 1.8, st.y + 1.8, `BUILD: ${agent.name.toUpperCase()}`, agent.id);
-        continue;
-      }
-      const isSelected = this.selectedDeskId === agent.id || this.tourTarget === agent.id;
       this.drawFloorQuad(
         ctx,
-        st.x - 1.85,
-        st.y - 1.85,
-        st.x + 1.85,
-        st.y + 1.85,
-        tier >= 3 ? '#293c61' : '#21314f',
-        isSelected || tier >= 2 ? agent.accent : 'rgba(148, 163, 184, 0.42)'
+        INFRA_ROOMS.lobbyRoom.x1,
+        INFRA_ROOMS.lobbyRoom.y1,
+        INFRA_ROOMS.lobbyRoom.x2,
+        INFRA_ROOMS.lobbyRoom.y2,
+        '#25203b',
+        lobbyTier >= 2 ? '#34d399' : 'rgba(52, 211, 153, 0.55)'
       );
-      this.drawFloorQuad(ctx, st.x - 1.35, st.y - 1.15, st.x + 1.35, st.y + 1.15, st.rugColor, 'rgba(255,255,255,0.12)');
     }
 
-    // 3. East Sports, Aquatics & Social Wing (individually buildable!)
+    if (confTier === 0) {
+      this.drawBlueprintPlot(
+        ctx,
+        INFRA_ROOMS.conferenceRoom.x1,
+        INFRA_ROOMS.conferenceRoom.y1,
+        INFRA_ROOMS.conferenceRoom.x2,
+        INFRA_ROOMS.conferenceRoom.y2,
+        'BUILD: BOARDROOM',
+        'conferenceRoom'
+      );
+    } else {
+      this.drawFloorQuad(
+        ctx,
+        INFRA_ROOMS.conferenceRoom.x1,
+        INFRA_ROOMS.conferenceRoom.y1,
+        INFRA_ROOMS.conferenceRoom.x2,
+        INFRA_ROOMS.conferenceRoom.y2,
+        '#202b47',
+        confTier >= 2 ? '#a78bfa' : 'rgba(167, 139, 250, 0.55)'
+      );
+    }
+
+    // 3. Executive & Specialist Office Suites inside their Departments
+    for (const agent of this.team) {
+      const st = STATIONS[agent.id];
+      if (!st?.box) continue;
+      const tier = this.getRoomTier(agent.id);
+      if (tier === 0) {
+        this.drawBlueprintPlot(
+          ctx,
+          st.box.x1,
+          st.box.y1,
+          st.box.x2,
+          st.box.y2,
+          `BUILD: ${agent.name.toUpperCase()}`,
+          agent.id
+        );
+        continue;
+      }
+
+      const isSelected =
+        this.selectedDeskId === agent.id || this.tourTarget === agent.id || this.dragHoverId === agent.id;
+      this.drawFloorQuad(
+        ctx,
+        st.box.x1,
+        st.box.y1,
+        st.box.x2,
+        st.box.y2,
+        tier >= 3 ? '#293c61' : '#202f4d',
+        isSelected || tier >= 2 ? agent.accent : 'rgba(148, 163, 184, 0.45)',
+        isSelected ? 2.1 : 1.3
+      );
+      this.drawFloorQuad(
+        ctx,
+        st.box.x1 + 0.55,
+        st.box.y1 + 0.65,
+        st.box.x2 - 0.55,
+        st.box.y2 - 0.65,
+        st.rugColor,
+        'rgba(255,255,255,0.1)'
+      );
+    }
+
+    // 4. Wellness, Sports & Lounge Dept Zones
     const pbTier = this.getRoomTier('pickleballCourt');
     const gymTier = this.getRoomTier('gymRoom');
     const bballTier = this.getRoomTier('basketballCourt');
@@ -924,60 +1132,60 @@ export class Office3DScene {
     const soccerTier = this.getRoomTier('soccerPitch');
 
     if (pbTier === 0) {
-      this.drawBlueprintPlot(ctx, 5.1, -9.1, 9.7, -4.2, 'BUILD: PICKLEBALL', 'pickleballCourt');
+      this.drawBlueprintPlot(ctx, 11.1, -12.6, 15.9, -7.2, 'BUILD: PICKLEBALL', 'pickleballCourt');
     } else {
-      this.drawFloorQuad(ctx, 5.1, -9.1, 9.7, -4.2, '#16a34a', '#bbf7d0');
-      this.drawFloorQuad(ctx, 5.4, -8.5, 9.4, -4.8, '#2563eb', '#ffffff');
-      this.drawLine3D(ctx, 6.8, -8.5, 0.02, 6.8, -4.8, 0.02, '#ffffff', 1.2);
-      this.drawLine3D(ctx, 8.0, -8.5, 0.02, 8.0, -4.8, 0.02, '#ffffff', 1.2);
+      this.drawFloorQuad(ctx, 11.1, -12.6, 15.9, -7.2, '#16a34a', '#bbf7d0');
+      this.drawFloorQuad(ctx, 11.5, -11.9, 15.5, -7.9, '#2563eb', '#ffffff');
+      this.drawLine3D(ctx, 12.9, -11.9, 0.02, 12.9, -7.9, 0.02, '#ffffff', 1.2);
+      this.drawLine3D(ctx, 14.1, -11.9, 0.02, 14.1, -7.9, 0.02, '#ffffff', 1.2);
     }
 
     if (gymTier === 0) {
-      this.drawBlueprintPlot(ctx, 5.1, -3.5, 9.7, 0.3, 'BUILD: GYM', 'gymRoom');
+      this.drawBlueprintPlot(ctx, 11.1, -5.8, 15.9, -0.8, 'BUILD: GYM', 'gymRoom');
     } else {
-      this.drawFloorQuad(ctx, 5.1, -3.5, 9.7, 0.3, '#273244', 'rgba(250, 204, 21, 0.55)');
-      this.drawFloorQuad(ctx, 5.5, -0.8, 7.2, 0.0, '#9333ea');
+      this.drawFloorQuad(ctx, 11.1, -5.8, 15.9, -0.8, '#273244', 'rgba(250, 204, 21, 0.55)');
+      this.drawFloorQuad(ctx, 11.5, -2.5, 13.4, -1.4, '#9333ea');
     }
 
     if (bballTier === 0) {
-      this.drawBlueprintPlot(ctx, 5.1, 1.0, 9.7, 5.5, 'BUILD: BASKETBALL', 'basketballCourt');
+      this.drawBlueprintPlot(ctx, 11.1, 0.6, 15.9, 6.2, 'BUILD: BASKETBALL', 'basketballCourt');
     } else {
-      this.drawFloorQuad(ctx, 5.1, 1.0, 9.7, 5.5, '#c26d27', '#fde68a');
-      this.drawFloorQuad(ctx, 8.0, 2.3, 9.6, 4.2, '#9a3412', '#ffffff');
-      this.drawLine3D(ctx, 7.2, 1.0, 0.02, 7.2, 5.5, 0.02, '#ffffff', 1.2);
+      this.drawFloorQuad(ctx, 11.1, 0.6, 15.9, 6.2, '#c26d27', '#fde68a');
+      this.drawFloorQuad(ctx, 14.0, 2.3, 15.8, 4.5, '#9a3412', '#ffffff');
+      this.drawLine3D(ctx, 13.3, 0.6, 0.02, 13.3, 6.2, 0.02, '#ffffff', 1.2);
     }
 
     if (swimTier === 0) {
-      this.drawBlueprintPlot(ctx, 10.3, -9.1, 14.9, -2.5, 'BUILD: SWIM POOL', 'swimmingPool');
+      this.drawBlueprintPlot(ctx, 16.7, -12.6, 21.5, -4.4, 'BUILD: SWIM POOL', 'swimmingPool');
     } else {
-      this.drawFloorQuad(ctx, 10.3, -9.1, 14.9, -2.5, '#cbd5e1', '#e2e8f0');
+      this.drawFloorQuad(ctx, 16.7, -12.6, 21.5, -4.4, '#cbd5e1', '#e2e8f0');
       const waterColor = !this.reducedMotion && Math.sin(this.clockSec * 2) > 0 ? '#0284c7' : '#0369a1';
-      this.drawFloorQuad(ctx, 10.8, -8.6, 14.4, -3.0, waterColor, '#7dd3fc');
-      this.drawLine3D(ctx, 12.0, -8.6, 0.05, 12.0, -3.0, 0.05, '#facc15', 1.5);
-      this.drawLine3D(ctx, 13.2, -8.6, 0.05, 13.2, -3.0, 0.05, '#f87171', 1.5);
+      this.drawFloorQuad(ctx, 17.2, -12.1, 21.0, -4.9, waterColor, '#7dd3fc');
+      this.drawLine3D(ctx, 18.4, -12.1, 0.05, 18.4, -4.9, 0.05, '#facc15', 1.5);
+      this.drawLine3D(ctx, 19.8, -12.1, 0.05, 19.8, -4.9, 0.05, '#f87171', 1.5);
     }
 
     if (soccerTier === 0) {
-      this.drawBlueprintPlot(ctx, 10.3, -1.8, 14.9, 3.2, 'BUILD: SOCCER', 'soccerPitch');
+      this.drawBlueprintPlot(ctx, 16.7, -3.0, 21.5, 3.0, 'BUILD: SOCCER', 'soccerPitch');
     } else {
-      this.drawFloorQuad(ctx, 10.3, -1.8, 14.9, 3.2, '#15803d', '#86efac');
-      this.drawFloorQuad(ctx, 11.4, -1.8, 12.6, 3.2, '#166534');
-      this.drawFloorQuad(ctx, 13.7, -1.8, 14.9, 3.2, '#166534');
-      this.drawLine3D(ctx, 12.6, -1.8, 0.02, 12.6, 3.2, 0.02, '#ffffff', 1.2);
-      this.drawFloorQuad(ctx, 13.9, -0.4, 14.9, 1.8, 'rgba(255,255,255,0.06)', '#ffffff');
+      this.drawFloorQuad(ctx, 16.7, -3.0, 21.5, 3.0, '#15803d', '#86efac');
+      this.drawFloorQuad(ctx, 17.8, -3.0, 19.0, 3.0, '#166534');
+      this.drawFloorQuad(ctx, 20.1, -3.0, 21.5, 3.0, '#166534');
+      this.drawLine3D(ctx, 19.0, -3.0, 0.02, 19.0, 3.0, 0.02, '#ffffff', 1.2);
+      this.drawFloorQuad(ctx, 20.4, -1.2, 21.5, 1.2, 'rgba(255,255,255,0.06)', '#ffffff');
     }
 
     if (barTier === 0) {
-      this.drawBlueprintPlot(ctx, 5.1, 6.2, 9.7, 9.2, 'BUILD: COFFEE CAFE', 'barLounge');
-      this.drawBlueprintPlot(ctx, 10.3, 3.9, 14.9, 9.3, 'BUILD: BAR & DANCE', 'barLounge');
+      this.drawBlueprintPlot(ctx, 11.1, 7.6, 15.9, 12.6, 'BUILD: COFFEE CAFE', 'barLounge');
+      this.drawBlueprintPlot(ctx, 16.7, 4.4, 21.5, 12.6, 'BUILD: BAR & DANCE', 'barLounge');
     } else {
-      this.drawFloorQuad(ctx, 5.1, 6.2, 9.7, 9.2, '#3b2b28', 'rgba(251, 146, 60, 0.55)');
-      this.drawFloorQuad(ctx, 10.3, 3.9, 14.9, 6.1, '#143f32', 'rgba(52, 211, 153, 0.55)');
-      this.drawFloorQuad(ctx, 10.3, 6.4, 14.9, 9.3, '#1a1033', 'rgba(232, 121, 249, 0.6)');
+      this.drawFloorQuad(ctx, 11.1, 7.6, 15.9, 12.6, '#3b2b28', 'rgba(251, 146, 60, 0.55)');
+      this.drawFloorQuad(ctx, 16.7, 4.4, 21.5, 7.2, '#143f32', 'rgba(52, 211, 153, 0.55)');
+      this.drawFloorQuad(ctx, 16.7, 8.6, 21.5, 12.6, '#1a1033', 'rgba(232, 121, 249, 0.6)');
       this.drawDanceFloorTiles(ctx);
     }
 
-    // Glowing golden-cyan neural bridge connecting J.A.R.V.I.S. AI Brain directly to CEO Suite!
+    // Glowing neural bridge between J.A.R.V.I.S. AI Brain Core & CEO Executive Suite
     const linkTier = this.upgrades.brainLinkTier || 1;
     this.drawLine3D(
       ctx,
@@ -1004,7 +1212,7 @@ export class Office3DScene {
       );
     }
 
-    // 5. Data Conduits from JARVIS Brain to all specialist desks
+    // 5. Data Conduits from J.A.R.V.I.S. Core to Specialist Offices
     for (const agent of this.team) {
       const st = STATIONS[agent.id];
       if (!st) continue;
@@ -1019,8 +1227,8 @@ export class Office3DScene {
         st.deskX,
         st.deskY,
         0.04,
-        active ? '#38bdf8' : 'rgba(125, 211, 252, 0.25)',
-        active ? 2.4 : 1.0
+        active ? '#38bdf8' : 'rgba(125, 211, 252, 0.2)',
+        active ? 2.4 : 0.9
       );
     }
 
@@ -1035,38 +1243,36 @@ export class Office3DScene {
 
     for (const agent of this.team) {
       const st = STATIONS[agent.id];
-      if (!st || this.getRoomTier(agent.id) === 0) continue;
+      if (!st?.box || this.getRoomTier(agent.id) === 0) continue;
       const isWorking = (this.mission?.tasks ?? []).some(
         (t) => t.agentId === agent.id && t.status === 'running'
       );
-      pushItem(st.x, st.y - 1.75, () =>
-        this.drawGlassWall3D(ctx, st.x - 1.7, st.y - 1.73, st.x + 1.7, st.y - 1.73, 1.25)
+      pushItem(st.x, st.box.y1, () =>
+        this.drawGlassWall3D(ctx, st.box.x1 + 0.15, st.box.y1 + 0.08, st.box.x2 - 0.15, st.box.y1 + 0.08, 1.35)
       );
       pushItem(st.deskX, st.deskY, () => this.drawWorkstation3D(ctx, agent, st, isWorking));
-      pushItem(st.x + 1.25, st.y - 1.15, () => this.drawRoomProp3D(ctx, agent.id, st));
+      pushItem(st.x + 1.5, st.y - 1.3, () => this.drawRoomProp3D(ctx, agent.id, st));
     }
 
-    // West Infrastructure & Meeting 3D Interiors
-    if (serverTier >= 1) pushItem(-12.5, -5.8, () => this.drawServerRoom3D(ctx, serverTier));
-    if (confTier >= 1) pushItem(-12.5, 0.0, () => this.drawConferenceRoom3D(ctx, confTier));
-    if (lobbyTier >= 1) pushItem(-12.5, 5.8, () => this.drawLobbyRoom3D(ctx, lobbyTier));
+    if (serverTier >= 1) pushItem(INFRA_ROOMS.serverRoom.cx, INFRA_ROOMS.serverRoom.cy, () => this.drawServerRoom3D(ctx, serverTier));
+    if (confTier >= 1) pushItem(INFRA_ROOMS.conferenceRoom.cx, INFRA_ROOMS.conferenceRoom.cy, () => this.drawConferenceRoom3D(ctx, confTier));
+    if (lobbyTier >= 1) pushItem(INFRA_ROOMS.lobbyRoom.cx, INFRA_ROOMS.lobbyRoom.cy, () => this.drawLobbyRoom3D(ctx, lobbyTier));
 
-    // Sports Equipment & Animated Balls (only render built zones)
-    if (pbTier >= 1) pushItem(7.4, -6.65, () => this.drawPickleballNetAndBall3D(ctx));
+    if (pbTier >= 1) pushItem(13.5, -9.9, () => this.drawPickleballNetAndBall3D(ctx));
     if (gymTier >= 1) {
-      pushItem(5.8, -2.5, () => this.drawTreadmill3D(ctx, 5.8, -2.5));
-      pushItem(7.2, -2.5, () => this.drawTreadmill3D(ctx, 7.2, -2.5));
-      pushItem(8.9, -2.1, () => this.drawWeightsStation3D(ctx, 8.9, -2.1));
+      pushItem(12.0, -4.8, () => this.drawTreadmill3D(ctx, 12.0, -4.8));
+      pushItem(13.3, -4.8, () => this.drawTreadmill3D(ctx, 13.3, -4.8));
+      pushItem(14.9, -4.3, () => this.drawWeightsStation3D(ctx, 14.9, -4.3));
     }
-    if (bballTier >= 1) pushItem(9.4, 3.25, () => this.drawBasketballHoopAndBall3D(ctx));
-    if (soccerTier >= 1) pushItem(14.7, 0.7, () => this.drawSoccerGoalAndBall3D(ctx));
+    if (bballTier >= 1) pushItem(15.5, 3.4, () => this.drawBasketballHoopAndBall3D(ctx));
+    if (soccerTier >= 1) pushItem(21.3, 0.0, () => this.drawSoccerGoalAndBall3D(ctx));
     if (barTier >= 1) {
-      pushItem(12.4, 4.8, () => this.drawPingPongTableAndBall3D(ctx));
-      pushItem(14.3, 4.5, () => this.drawTree3D(ctx, 14.3, 4.5));
-      pushItem(6.2, 6.9, () => this.drawCoffeeCafe3D(ctx, 6.2, 6.9));
-      pushItem(8.6, 7.0, () => this.drawLoungeSofa3D(ctx, 8.6, 7.0));
-      pushItem(11.1, 7.1, () => this.drawDrinksBar3D(ctx, 11.1, 7.1));
-      pushItem(13.5, 7.0, () => this.drawDiscoBall3D(ctx, 13.5, 7.0));
+      pushItem(18.8, 5.8, () => this.drawPingPongTableAndBall3D(ctx));
+      pushItem(20.8, 5.5, () => this.drawTree3D(ctx, 20.8, 5.5));
+      pushItem(12.3, 9.4, () => this.drawCoffeeCafe3D(ctx, 12.3, 9.4));
+      pushItem(14.7, 9.6, () => this.drawLoungeSofa3D(ctx, 14.7, 9.6));
+      pushItem(17.5, 9.4, () => this.drawDrinksBar3D(ctx, 17.5, 9.4));
+      pushItem(19.9, 9.4, () => this.drawDiscoBall3D(ctx, 19.9, 9.4));
     }
 
     for (const actor of this.actors.values()) {
@@ -1090,25 +1296,32 @@ export class Office3DScene {
       ctx.shadowBlur = 0;
     }
 
-    // Zone labels
-    if (serverTier >= 1) this.drawZoneLabel(ctx, -12.5, -9.0, 0.15, 'SERVER VAULT', '#38bdf8');
-    if (confTier >= 1) this.drawZoneLabel(ctx, -12.5, -2.6, 0.15, 'BOARDROOM', '#c4b5fd');
-    if (lobbyTier >= 1) this.drawZoneLabel(ctx, -12.5, 3.0, 0.15, 'RECEPTION LOBBY', '#6ee7b7');
-    if (pbTier >= 1) this.drawZoneLabel(ctx, 7.4, -9.3, 0.15, 'PICKLEBALL', '#86efac');
-    if (swimTier >= 1) this.drawZoneLabel(ctx, 12.6, -9.3, 0.15, 'SWIMMING POOL', '#7dd3fc');
-    if (gymTier >= 1) this.drawZoneLabel(ctx, 7.4, -3.7, 0.15, 'FITNESS GYM', '#fde047');
-    if (soccerTier >= 1) this.drawZoneLabel(ctx, 12.6, -2.0, 0.15, 'SOCCER PITCH', '#86efac');
-    if (bballTier >= 1) this.drawZoneLabel(ctx, 7.4, 0.8, 0.15, 'BASKETBALL', '#fdba74');
+    // 7. Crisp Non-Overlapping Department Banners
+    for (const dept of DEPARTMENT_ZONES) {
+      const cx = (dept.x1 + dept.x2) / 2;
+      this.drawDepartmentBanner(ctx, cx, dept.y1 - 0.35, 0.28, dept.label, dept.accent);
+    }
+
+    // 8. Room & Court Labels (positioned cleanly at front edge of each spacious zone)
+    if (serverTier >= 1) this.drawZoneLabel(ctx, INFRA_ROOMS.serverRoom.cx, INFRA_ROOMS.serverRoom.y2 + 0.15, 0.15, INFRA_ROOMS.serverRoom.label, INFRA_ROOMS.serverRoom.accent);
+    if (confTier >= 1) this.drawZoneLabel(ctx, INFRA_ROOMS.conferenceRoom.cx, INFRA_ROOMS.conferenceRoom.y2 + 0.15, 0.15, INFRA_ROOMS.conferenceRoom.label, INFRA_ROOMS.conferenceRoom.accent);
+    if (lobbyTier >= 1) this.drawZoneLabel(ctx, INFRA_ROOMS.lobbyRoom.cx, INFRA_ROOMS.lobbyRoom.y2 + 0.15, 0.15, INFRA_ROOMS.lobbyRoom.label, INFRA_ROOMS.lobbyRoom.accent);
+
+    if (pbTier >= 1) this.drawZoneLabel(ctx, 13.5, -7.0, 0.15, 'PICKLEBALL', '#86efac');
+    if (swimTier >= 1) this.drawZoneLabel(ctx, 19.1, -4.2, 0.15, 'SWIMMING POOL', '#7dd3fc');
+    if (gymTier >= 1) this.drawZoneLabel(ctx, 13.5, -0.6, 0.15, 'FITNESS GYM', '#fde047');
+    if (soccerTier >= 1) this.drawZoneLabel(ctx, 19.1, 3.2, 0.15, 'SOCCER PITCH', '#86efac');
+    if (bballTier >= 1) this.drawZoneLabel(ctx, 13.5, 6.4, 0.15, 'BASKETBALL', '#fdba74');
     if (barTier >= 1) {
-      this.drawZoneLabel(ctx, 12.6, 3.7, 0.15, 'PING-PONG', '#6ee7b7');
-      this.drawZoneLabel(ctx, 7.4, 6.0, 0.15, 'COFFEE & DRINKS', '#fdba74');
-      this.drawZoneLabel(ctx, 12.6, 6.3, 0.15, 'BAR & DANCE FLOOR', '#f0abfc');
+      this.drawZoneLabel(ctx, 19.1, 7.4, 0.15, 'PING-PONG', '#6ee7b7');
+      this.drawZoneLabel(ctx, 13.5, 12.8, 0.15, 'COFFEE & LOUNGE', '#fdba74');
+      this.drawZoneLabel(ctx, 19.1, 12.8, 0.15, 'BAR & DANCE', '#f0abfc');
     }
 
     for (const agent of this.team) {
       const st = STATIONS[agent.id];
-      if (!st || this.getRoomTier(agent.id) === 0) continue;
-      this.drawZoneLabel(ctx, st.x, st.y + 1.8, 0.15, st.label.toUpperCase(), agent.accent);
+      if (!st?.box || this.getRoomTier(agent.id) === 0) continue;
+      this.drawZoneLabel(ctx, st.x, st.box.y2 + 0.18, 0.15, st.label.toUpperCase(), agent.accent);
     }
 
     const placedBubbles = [];
@@ -1130,7 +1343,6 @@ export class Office3DScene {
     const cy = STATIONS.jarvis.y;
     const isRunning = this.mission?.status === 'running';
 
-    // Glowing atrium floor halo
     const hubFloor = this.project(cx, cy, 0.03);
     ctx.save();
     ctx.strokeStyle = isRunning ? '#38bdf8' : 'rgba(56, 189, 248, 0.55)';
@@ -1140,13 +1352,11 @@ export class Office3DScene {
     ctx.stroke();
     ctx.restore();
 
-    // 4 Surrounding Briefing Holo-Stools
     for (const [ox, oy] of [[-1.6, -1.6], [1.6, -1.6], [-1.6, 1.6], [1.6, 1.6]]) {
       this.drawBox3D(ctx, cx + ox, cy + oy, 0, 0.42, 0.42, 0.28, '#334155');
       this.drawBox3D(ctx, cx + ox, cy + oy, 0.28, 0.46, 0.46, 0.08, '#38bdf8');
     }
 
-    // Two-tier Neural AI Brain Dais
     this.drawBox3D(ctx, cx, cy, 0, 2.2, 2.2, 0.22, '#0f294a');
     this.drawBox3D(ctx, cx, cy, 0.22, 1.6, 1.6, 0.18, '#1d4ed8');
     this.drawBox3D(ctx, cx, cy, 0.4, 1.1, 1.1, 0.12, '#38bdf8');
@@ -1185,7 +1395,6 @@ export class Office3DScene {
       ctx.closePath();
       ctx.fill();
     }
-    // Glowing inner Neural Brain Sphere
     const corePt = this.project(cx, cy, floatZ + 0.18);
     ctx.fillStyle = '#e0f2fe';
     ctx.beginPath();
@@ -1195,26 +1404,25 @@ export class Office3DScene {
 
     const lbl = this.project(cx, cy, 0);
     this.hitBoxes.push({ id: 'jarvis', sx: lbl.sx, sy: lbl.sy - 20, radius: r * 2.1 });
-    this.drawZoneLabel(ctx, cx, cy, 2.35, 'J.A.R.V.I.S. AI BRAIN', '#7dd3fc');
+    this.drawZoneLabel(ctx, cx, cy, 2.4, 'J.A.R.V.I.S. AI BRAIN', '#7dd3fc');
   }
 
   drawWorkstation3D(ctx, agent, st, isWorking) {
-    // Executive ergonomic chair with headrest accent
-    this.drawBox3D(ctx, st.chairX, st.chairY, 0.2, 0.6, 0.6, 0.24, '#334155');
-    this.drawBox3D(ctx, st.chairX, st.chairY + 0.22, 0.44, 0.52, 0.14, 0.42, agent.accent);
+    this.drawBox3D(ctx, st.chairX, st.chairY, 0.2, 0.62, 0.62, 0.24, '#334155');
+    this.drawBox3D(ctx, st.chairX, st.chairY + 0.22, 0.44, 0.54, 0.14, 0.44, agent.accent);
 
-    // Executive walnut/chrome desk (CEO gets upgradable Tier 1-3 Executive Command Desk!)
     const isCeo = agent.id === 'ceo';
     const deskTier = isCeo ? this.upgrades.deskTier || 1 : 1;
+    const roomTier = this.getRoomTier(agent.id);
     const deskColor = isCeo && deskTier === 3 ? '#1e3a5f' : isCeo ? '#78350f' : '#925e38';
-    const deskW = isCeo ? (deskTier >= 2 ? 2.45 : 2.15) : 1.85;
-    const deskD = isCeo ? (deskTier >= 2 ? 1.15 : 1.05) : 0.94;
-    this.drawBox3D(ctx, st.deskX, st.deskY, 0, deskW, deskD, 0.7, deskColor);
+    const deskW = isCeo ? (deskTier >= 2 ? 2.55 : 2.2) : roomTier >= 2 ? 2.15 : 1.9;
+    const deskD = isCeo ? (deskTier >= 2 ? 1.18 : 1.05) : 0.98;
+    this.drawBox3D(ctx, st.deskX, st.deskY, 0, deskW, deskD, 0.72, deskColor);
     this.drawBox3D(
       ctx,
       st.deskX,
       st.deskY + deskD / 2,
-      deskTier === 3 ? 0.06 : 0.64,
+      deskTier === 3 ? 0.06 : 0.66,
       deskW + 0.04,
       0.05,
       deskTier === 3 ? 0.1 : 0.06,
@@ -1223,115 +1431,182 @@ export class Office3DScene {
     );
 
     if (isCeo && deskTier >= 2) {
-      // Side executive wing return
-      this.drawBox3D(ctx, st.deskX - 1.05, st.deskY + 0.45, 0, 0.45, 0.95, 0.7, deskColor);
+      this.drawBox3D(ctx, st.deskX - 1.08, st.deskY + 0.45, 0, 0.45, 0.95, 0.72, deskColor);
     }
 
-    // Warm glowing desk lamp
-    this.drawBox3D(ctx, st.deskX + 0.75, st.deskY + 0.22, 0.7, 0.14, 0.14, 0.36, '#fde047');
+    this.drawBox3D(ctx, st.deskX + 0.78, st.deskY + 0.22, 0.72, 0.14, 0.14, 0.36, '#fde047');
 
-    // Dual/Triple/5-Screen glowing monitors
     const screenColor = isWorking ? agent.accent : '#38bdf8';
-    this.drawBox3D(ctx, st.deskX - 0.42, st.deskY - 0.15, 0.7, 0.68, 0.14, 0.48, '#0f172a');
-    this.drawBox3D(ctx, st.deskX - 0.42, st.deskY - 0.07, 0.76, 0.58, 0.05, 0.36, screenColor, 0);
-    this.drawBox3D(ctx, st.deskX + 0.42, st.deskY - 0.15, 0.7, 0.68, 0.14, 0.48, '#0f172a');
-    this.drawBox3D(ctx, st.deskX + 0.42, st.deskY - 0.07, 0.76, 0.58, 0.05, 0.36, isWorking ? '#34d399' : agent.accent, 0);
-    if (isCeo) {
-      this.drawBox3D(ctx, st.deskX, st.deskY - 0.18, 0.7, 0.56, 0.14, 0.52, '#0f172a');
-      this.drawBox3D(ctx, st.deskX, st.deskY - 0.1, 0.76, 0.48, 0.05, 0.4, '#fbbf24', 0);
-      if (deskTier >= 2) {
-        this.drawBox3D(ctx, st.deskX - 0.88, st.deskY - 0.06, 0.7, 0.44, 0.14, 0.44, '#0f172a');
-        this.drawBox3D(ctx, st.deskX - 0.88, st.deskY + 0.02, 0.76, 0.36, 0.05, 0.32, '#22d3ee', 0);
-      }
-      if (deskTier >= 3) {
-        this.drawBox3D(ctx, st.deskX + 0.88, st.deskY - 0.06, 0.7, 0.44, 0.14, 0.44, '#0f172a');
-        this.drawBox3D(ctx, st.deskX + 0.88, st.deskY + 0.02, 0.76, 0.36, 0.05, 0.32, '#a78bfa', 0);
-      }
+    this.drawBox3D(ctx, st.deskX - 0.44, st.deskY - 0.15, 0.72, 0.7, 0.14, 0.5, '#0f172a');
+    this.drawBox3D(ctx, st.deskX - 0.44, st.deskY - 0.07, 0.78, 0.6, 0.05, 0.38, screenColor, 0);
+    this.drawBox3D(ctx, st.deskX + 0.44, st.deskY - 0.15, 0.72, 0.7, 0.14, 0.5, '#0f172a');
+    this.drawBox3D(ctx, st.deskX + 0.44, st.deskY - 0.07, 0.78, 0.6, 0.05, 0.38, isWorking ? '#34d399' : agent.accent, 0);
+    if (isCeo || roomTier >= 2) {
+      this.drawBox3D(ctx, st.deskX, st.deskY - 0.18, 0.72, 0.58, 0.14, 0.54, '#0f172a');
+      this.drawBox3D(ctx, st.deskX, st.deskY - 0.1, 0.78, 0.5, 0.05, 0.42, isCeo ? '#fbbf24' : '#38bdf8', 0);
     }
-    this.drawBox3D(ctx, st.deskX, st.deskY + 0.2, 0.7, 0.74, 0.22, 0.04, '#1e293b');
+    if (isCeo && deskTier >= 2) {
+      this.drawBox3D(ctx, st.deskX - 0.92, st.deskY - 0.06, 0.72, 0.44, 0.14, 0.44, '#0f172a');
+      this.drawBox3D(ctx, st.deskX - 0.92, st.deskY + 0.02, 0.78, 0.36, 0.05, 0.32, '#22d3ee', 0);
+    }
+    if (isCeo && deskTier >= 3) {
+      this.drawBox3D(ctx, st.deskX + 0.92, st.deskY - 0.06, 0.72, 0.44, 0.14, 0.44, '#0f172a');
+      this.drawBox3D(ctx, st.deskX + 0.92, st.deskY + 0.02, 0.78, 0.36, 0.05, 0.32, '#a78bfa', 0);
+    }
+    this.drawBox3D(ctx, st.deskX, st.deskY + 0.2, 0.72, 0.76, 0.22, 0.04, '#1e293b');
 
     const p = this.project(st.deskX, st.deskY, 0.5);
-    this.hitBoxes.push({ id: agent.id, sx: p.sx, sy: p.sy, radius: 28 * this.zoom });
+    this.hitBoxes.push({ id: agent.id, sx: p.sx, sy: p.sy, radius: 30 * this.zoom });
   }
 
   drawRoomProp3D(ctx, agentId, st) {
-    // Every office gets a lush potted plant + its signature bespoke furniture!
-    this.drawBox3D(ctx, st.x - 1.35, st.y - 1.2, 0, 0.34, 0.34, 0.28, '#9a3412');
-    this.drawBox3D(ctx, st.x - 1.35, st.y - 1.2, 0.28, 0.5, 0.5, 0.42, '#22c55e');
+    const { box } = st;
+    const roomTier = this.getRoomTier(agentId);
+    const leftX = box.x1 + 0.55;
+    const rightX = box.x2 - 0.55;
+    const backY = box.y1 + 0.65;
+    const frontY = box.y2 - 0.65;
+
+    // Corner potted office plant
+    this.drawBox3D(ctx, leftX, backY, 0, 0.36, 0.36, 0.3, '#9a3412');
+    this.drawBox3D(ctx, leftX, backY, 0.3, 0.54, 0.54, 0.44, '#22c55e');
 
     if (agentId === 'ceo') {
       const decorTier = this.upgrades.decorTier || 1;
       const brainTier = this.upgrades.brainLinkTier || 1;
 
-      // Tier 1: Gold trophy pedestal + visitor seat
-      this.drawBox3D(ctx, st.x + 1.28, st.y + 1.05, 0, 0.45, 0.45, 0.85, '#78350f');
-      this.drawBox3D(ctx, st.x + 1.28, st.y + 1.05, 0.85, 0.32, 0.32, 0.32, '#fbbf24');
-      this.drawBox3D(ctx, st.x - 1.2, st.y + 1.05, 0, 0.48, 0.48, 0.38, '#b45309');
+      this.drawBox3D(ctx, rightX - 0.1, frontY - 0.1, 0, 0.46, 0.46, 0.88, '#78350f');
+      this.drawBox3D(ctx, rightX - 0.1, frontY - 0.1, 0.88, 0.34, 0.34, 0.34, '#fbbf24');
+      this.drawBox3D(ctx, leftX + 0.1, frontY - 0.1, 0, 0.5, 0.5, 0.4, '#b45309');
 
-      // Tier 2: Executive Velvet Lounge Sofa & Glass Coffee Table inside CEO office
       if (decorTier >= 2) {
-        this.drawBox3D(ctx, st.x + 0.2, st.y + 1.3, 0, 1.35, 0.55, 0.34, '#6d28d9');
-        this.drawBox3D(ctx, st.x + 0.2, st.y + 1.5, 0.34, 1.35, 0.16, 0.34, '#5b21b6');
-        this.drawBox3D(ctx, st.x + 0.2, st.y + 0.82, 0, 0.72, 0.34, 0.24, '#38bdf8');
+        this.drawBox3D(ctx, st.x, frontY - 0.05, 0, 1.5, 0.58, 0.36, '#6d28d9');
+        this.drawBox3D(ctx, st.x, frontY + 0.16, 0.36, 1.5, 0.16, 0.36, '#5b21b6');
+        this.drawBox3D(ctx, st.x, frontY - 0.6, 0, 0.8, 0.36, 0.24, '#38bdf8');
       }
 
-      // Tier 3: Private Executive Espresso Bar, Twin Palm & Illuminated Gold Art Wall
       if (decorTier >= 3) {
-        this.drawBox3D(ctx, st.x + 1.38, st.y - 0.85, 0, 0.48, 0.9, 0.75, '#451a03');
-        this.drawBox3D(ctx, st.x + 1.38, st.y - 0.85, 0.75, 0.32, 0.34, 0.34, '#e2e8f0');
-        this.drawBox3D(ctx, st.x - 1.55, st.y - 0.1, 0.5, 0.08, 1.1, 0.75, '#fbbf24');
-        this.drawBox3D(ctx, st.x + 1.35, st.y - 1.45, 0, 0.34, 0.34, 0.28, '#9a3412');
-        this.drawBox3D(ctx, st.x + 1.35, st.y - 1.45, 0.28, 0.52, 0.52, 0.5, '#16a34a');
+        this.drawBox3D(ctx, rightX - 0.05, st.y - 0.4, 0, 0.52, 0.95, 0.78, '#451a03');
+        this.drawBox3D(ctx, rightX - 0.05, st.y - 0.4, 0.78, 0.34, 0.34, 0.34, '#e2e8f0');
+        this.drawBox3D(ctx, box.x1 + 0.18, st.y, 0.55, 0.08, 1.25, 0.82, '#fbbf24');
+        this.drawBox3D(ctx, rightX, backY, 0, 0.36, 0.36, 0.3, '#9a3412');
+        this.drawBox3D(ctx, rightX, backY, 0.3, 0.54, 0.54, 0.52, '#16a34a');
       }
 
-      // Brain Link Tier 3: In-Office Holographic J.A.R.V.I.S. Brain Projector!
       if (brainTier >= 3) {
-        this.drawBox3D(ctx, st.x - 1.15, st.y + 0.25, 0, 0.65, 0.65, 0.45, '#1e3a8a');
-        const holoZ = this.reducedMotion ? 0.85 : 0.85 + Math.sin(this.clockSec * 3) * 0.1;
-        const hp = this.project(st.x - 1.15, st.y + 0.25, holoZ);
+        this.drawBox3D(ctx, leftX + 0.15, st.y + 0.25, 0, 0.7, 0.7, 0.46, '#1e3a8a');
+        const holoZ = this.reducedMotion ? 0.88 : 0.88 + Math.sin(this.clockSec * 3) * 0.1;
+        const hp = this.project(leftX + 0.15, st.y + 0.25, holoZ);
         ctx.save();
-        ctx.fillStyle = 'rgba(56, 189, 248, 0.85)';
+        ctx.fillStyle = 'rgba(56, 189, 248, 0.88)';
         ctx.shadowColor = '#38bdf8';
         ctx.shadowBlur = 14;
         ctx.beginPath();
-        ctx.arc(hp.sx, hp.sy, 7 * this.zoom, 0, Math.PI * 2);
+        ctx.arc(hp.sx, hp.sy, 7.5 * this.zoom, 0, Math.PI * 2);
         ctx.fill();
         ctx.restore();
       }
-    } else if (agentId === 'sage') {
-      // Packed multi-colored research bookshelf
-      this.drawBox3D(ctx, st.x + 1.25, st.y + 1.1, 0, 1.0, 0.44, 1.4, '#78350f');
-      this.drawBox3D(ctx, st.x + 1.1, st.y + 1.1, 0.92, 0.25, 0.46, 0.2, '#34d399');
-      this.drawBox3D(ctx, st.x + 1.4, st.y + 1.1, 0.92, 0.25, 0.46, 0.2, '#38bdf8');
+      return;
+    }
+
+    if (roomTier >= 2) {
+      // Side visitor lounge sofa in upgraded department suites
+      this.drawBox3D(ctx, rightX - 0.4, frontY - 0.15, 0, 1.25, 0.52, 0.36, '#334155');
+    }
+
+    if (agentId === 'sage') {
+      this.drawBox3D(ctx, rightX - 0.1, st.y, 0, 0.48, 1.6, 1.45, '#78350f');
+      this.drawBox3D(ctx, rightX - 0.1, st.y - 0.35, 0.96, 0.5, 0.32, 0.22, '#34d399');
+      this.drawBox3D(ctx, rightX - 0.1, st.y + 0.35, 0.96, 0.5, 0.32, 0.22, '#38bdf8');
     } else if (agentId === 'vulcan' || agentId === 'aegis' || agentId === 'orion') {
-      // Glowing compute/security rack
-      this.drawBox3D(ctx, st.x + 1.25, st.y - 1.1, 0, 0.6, 0.6, 1.45, '#1e293b');
-      this.drawBox3D(ctx, st.x + 1.25, st.y - 1.1, 1.1, 0.64, 0.64, 0.12, '#38bdf8');
-      this.drawBox3D(ctx, st.x + 1.25, st.y - 1.1, 0.72, 0.64, 0.64, 0.08, '#34d399');
+      this.drawBox3D(ctx, rightX - 0.1, backY + 0.2, 0, 0.65, 0.65, 1.55, '#1e293b');
+      this.drawBox3D(ctx, rightX - 0.1, backY + 0.2, 1.15, 0.68, 0.68, 0.12, '#38bdf8');
+      this.drawBox3D(ctx, rightX - 0.1, backY + 0.2, 0.75, 0.68, 0.68, 0.08, '#34d399');
     } else if (agentId === 'athena' || agentId === 'vera') {
-      // Strategy / QA Kanban Whiteboard with colorful sticky cards
-      this.drawBox3D(ctx, st.x - 1.32, st.y + 1.05, 0.32, 0.12, 1.15, 0.95, '#f8fafc');
-      this.drawBox3D(ctx, st.x - 1.25, st.y + 0.85, 0.85, 0.04, 0.22, 0.2, '#facc15', 0);
-      this.drawBox3D(ctx, st.x - 1.25, st.y + 1.2, 0.75, 0.04, 0.22, 0.2, '#34d399', 0);
+      this.drawBox3D(ctx, leftX - 0.15, st.y + 0.2, 0.35, 0.14, 1.5, 1.0, '#f8fafc');
+      this.drawBox3D(ctx, leftX - 0.06, st.y - 0.1, 0.92, 0.04, 0.26, 0.22, '#facc15', 0);
+      this.drawBox3D(ctx, leftX - 0.06, st.y + 0.35, 0.82, 0.04, 0.26, 0.22, '#34d399', 0);
     } else if (agentId === 'iris') {
-      // UI Color Swatch Studio Wall
-      this.drawBox3D(ctx, st.x + 1.22, st.y + 1.0, 0.35, 0.14, 1.05, 0.95, '#334155');
-      this.drawBox3D(ctx, st.x + 1.14, st.y + 0.8, 0.85, 0.04, 0.24, 0.24, '#f472b6', 0);
-      this.drawBox3D(ctx, st.x + 1.14, st.y + 1.15, 0.85, 0.04, 0.24, 0.24, '#38bdf8', 0);
+      this.drawBox3D(ctx, rightX + 0.05, st.y, 0.35, 0.14, 1.4, 1.0, '#334155');
+      this.drawBox3D(ctx, rightX - 0.03, st.y - 0.25, 0.9, 0.04, 0.28, 0.26, '#f472b6', 0);
+      this.drawBox3D(ctx, rightX - 0.03, st.y + 0.2, 0.9, 0.04, 0.28, 0.26, '#38bdf8', 0);
     } else {
-      // Nova: Dual studio speaker & warm desk plant
-      this.drawBox3D(ctx, st.x + 1.22, st.y + 1.05, 0, 0.46, 0.46, 0.85, '#0891b2');
-      this.drawBox3D(ctx, st.x + 1.22, st.y + 1.05, 0.85, 0.38, 0.38, 0.14, '#22d3ee');
+      this.drawBox3D(ctx, rightX - 0.15, backY + 0.25, 0, 0.5, 0.5, 0.92, '#0891b2');
+      this.drawBox3D(ctx, rightX - 0.15, backY + 0.25, 0.92, 0.4, 0.4, 0.14, '#22d3ee');
+    }
+  }
+
+  drawBlueprintPlot(ctx, x1, y1, x2, y2, label, roomId) {
+    this.drawFloorQuad(ctx, x1, y1, x2, y2, 'rgba(56, 189, 248, 0.06)', 'rgba(56, 189, 248, 0.52)');
+    const cx = (x1 + x2) / 2;
+    const cy = (y1 + y2) / 2;
+    this.drawZoneLabel(ctx, cx, cy, 0.25, label, '#7dd3fc');
+    const p = this.project(cx, cy, 0.2);
+    this.hitBoxes.push({ id: `room:${roomId}`, sx: p.sx, sy: p.sy, radius: 28 * this.zoom });
+  }
+
+  drawServerRoom3D(ctx, tier) {
+    const r = INFRA_ROOMS.serverRoom;
+    const rackCoords = [
+      [r.cx - 1.5, r.cy - 2.6],
+      [r.cx + 1.5, r.cy - 2.6],
+      [r.cx - 1.5, r.cy],
+      [r.cx + 1.5, r.cy],
+      [r.cx - 1.5, r.cy + 2.6],
+      [r.cx + 1.5, r.cy + 2.6]
+    ];
+    if (tier >= 2) {
+      rackCoords.push([r.cx, r.cy - 2.6], [r.cx, r.cy + 2.6]);
+    }
+    const blink = !this.reducedMotion && Math.sin(this.clockSec * 5) > 0;
+    for (let i = 0; i < rackCoords.length; i += 1) {
+      const [rx, ry] = rackCoords[i];
+      this.drawBox3D(ctx, rx, ry, 0, 0.78, 0.78, 1.85, '#0f172a');
+      this.drawBox3D(ctx, rx, ry + 0.4, 1.38, 0.58, 0.05, 0.14, blink ^ (i % 2 === 0) ? '#38bdf8' : '#34d399', 0);
+      this.drawBox3D(ctx, rx, ry + 0.4, 0.9, 0.58, 0.05, 0.1, '#facc15', 0);
+    }
+    if (tier >= 3) {
+      this.drawBox3D(ctx, r.cx, r.cy, 0, 0.85, 0.85, 2.05, '#0369a1');
+      this.drawBox3D(ctx, r.cx, r.cy, 2.05, 0.56, 0.56, 0.34, '#38bdf8');
+    }
+  }
+
+  drawConferenceRoom3D(ctx, tier) {
+    const r = INFRA_ROOMS.conferenceRoom;
+    this.drawBox3D(ctx, r.cx, r.cy, 0.4, 1.45, 3.3, 0.1, '#38bdf8');
+    this.drawBox3D(ctx, r.cx, r.cy, 0, 0.8, 2.2, 0.4, '#1e293b');
+    for (const cy of [r.cy - 1.2, r.cy, r.cy + 1.2]) {
+      this.drawBox3D(ctx, r.cx - 1.1, cy, 0, 0.42, 0.42, 0.46, '#475569');
+      this.drawBox3D(ctx, r.cx + 1.1, cy, 0, 0.42, 0.42, 0.46, '#475569');
+    }
+    this.drawBox3D(ctx, r.cx, r.y1 + 0.25, 0.75, 2.2, 0.12, 1.05, tier >= 2 ? '#a78bfa' : '#334155');
+    if (tier >= 3) {
+      this.drawBox3D(ctx, r.cx, r.cy, 0.5, 0.6, 0.6, 0.38, '#fbbf24');
+    }
+  }
+
+  drawLobbyRoom3D(ctx, tier) {
+    const r = INFRA_ROOMS.lobbyRoom;
+    this.drawBox3D(ctx, r.cx, r.cy - 2.1, 0, 2.5, 0.85, 0.82, '#78350f');
+    this.drawBox3D(ctx, r.cx, r.cy - 2.2, 0.82, 0.72, 0.14, 0.45, '#38bdf8');
+    this.drawBox3D(ctx, r.cx - 0.9, r.cy + 2.1, 0, 2.2, 0.8, 0.42, '#10b981');
+    this.drawBox3D(ctx, r.cx + 1.6, r.cy + 2.1, 0, 1.5, 0.8, 0.42, '#0ea5e9');
+    if (tier >= 2) {
+      this.drawBox3D(ctx, r.x1 + 0.3, r.cy, 0.55, 0.14, 2.6, 1.2, '#34d399');
+    }
+    if (tier >= 3) {
+      this.drawTree3D(ctx, r.x1 + 0.7, r.y1 + 0.8);
+      this.drawTree3D(ctx, r.x2 - 0.7, r.y2 - 0.8);
     }
   }
 
   drawPickleballNetAndBall3D(ctx) {
-    this.drawBox3D(ctx, 7.4, -8.55, 0, 0.12, 0.12, 0.85, '#f8fafc');
-    this.drawBox3D(ctx, 7.4, -4.75, 0, 0.12, 0.12, 0.85, '#f8fafc');
-    const n00 = this.project(7.4, -8.5, 0.78);
-    const n10 = this.project(7.4, -4.8, 0.78);
-    const n11 = this.project(7.4, -4.8, 0.15);
-    const n01 = this.project(7.4, -8.5, 0.15);
+    this.drawBox3D(ctx, 13.5, -11.95, 0, 0.12, 0.12, 0.85, '#f8fafc');
+    this.drawBox3D(ctx, 13.5, -7.85, 0, 0.12, 0.12, 0.85, '#f8fafc');
+    const n00 = this.project(13.5, -11.9, 0.78);
+    const n10 = this.project(13.5, -7.9, 0.78);
+    const n11 = this.project(13.5, -7.9, 0.15);
+    const n01 = this.project(13.5, -11.9, 0.15);
     ctx.fillStyle = 'rgba(248, 250, 252, 0.35)';
     ctx.strokeStyle = '#ffffff';
     ctx.lineWidth = 1.2;
@@ -1346,8 +1621,8 @@ export class Office3DScene {
 
     if (this.hasActivity('pickleball')) {
       const cycle = (Math.sin(this.sportsClock * Math.PI) + 1) / 2;
-      const bx = 5.8 + cycle * 3.1;
-      const by = -6.65 + Math.sin(this.sportsClock * 1.7) * 0.7;
+      const bx = 12.1 + cycle * 2.8;
+      const by = -9.9 + Math.sin(this.sportsClock * 1.7) * 0.8;
       const bz = 0.25 + Math.abs(Math.sin(this.sportsClock * Math.PI)) * 1.0;
       const ball = this.project(bx, by, bz);
       ctx.fillStyle = '#fde047';
@@ -1358,15 +1633,14 @@ export class Office3DScene {
   }
 
   drawBasketballHoopAndBall3D(ctx) {
-    // 3D Pole, Backboard, and Orange Rim at (9.35, 3.25)
-    this.drawBox3D(ctx, 9.45, 3.25, 0, 0.18, 0.18, 2.35, '#475569');
-    this.drawBox3D(ctx, 9.2, 3.25, 1.85, 0.1, 1.15, 0.78, '#f8fafc');
-    this.drawBox3D(ctx, 8.92, 3.25, 1.98, 0.42, 0.42, 0.08, '#f97316');
+    this.drawBox3D(ctx, 15.5, 3.4, 0, 0.18, 0.18, 2.35, '#475569');
+    this.drawBox3D(ctx, 15.25, 3.4, 1.85, 0.1, 1.15, 0.78, '#f8fafc');
+    this.drawBox3D(ctx, 14.95, 3.4, 1.98, 0.42, 0.42, 0.08, '#f97316');
 
     if (this.hasActivity('basketball')) {
       const t = (this.sportsClock * 0.75) % 1;
-      const bx = 6.5 + t * 2.4;
-      const by = 2.8 + Math.sin(t * Math.PI) * 0.45;
+      const bx = 12.3 + t * 2.6;
+      const by = 2.9 + Math.sin(t * Math.PI) * 0.5;
       const bz = 0.25 + Math.sin(t * Math.PI) * 2.15;
       const shadow = this.project(bx, by, 0.02);
       ctx.fillStyle = 'rgba(0,0,0,0.35)';
@@ -1386,15 +1660,14 @@ export class Office3DScene {
   }
 
   drawSoccerGoalAndBall3D(ctx) {
-    // 3D Goalposts at x = 14.7, y = -0.2 .. +1.6
-    this.drawBox3D(ctx, 14.65, -0.2, 0, 0.14, 0.14, 1.15, '#ffffff');
-    this.drawBox3D(ctx, 14.65, 1.6, 0, 0.14, 0.14, 1.15, '#ffffff');
-    this.drawBox3D(ctx, 14.65, 0.7, 1.1, 0.14, 1.94, 0.12, '#ffffff');
+    this.drawBox3D(ctx, 21.3, -1.0, 0, 0.14, 0.14, 1.15, '#ffffff');
+    this.drawBox3D(ctx, 21.3, 1.0, 0, 0.14, 0.14, 1.15, '#ffffff');
+    this.drawBox3D(ctx, 21.3, 0.0, 1.1, 0.14, 2.14, 0.12, '#ffffff');
 
     if (this.hasActivity('soccer')) {
       const t = (Math.sin(this.sportsClock * 1.9) + 1) / 2;
-      const bx = 11.7 + t * 2.6;
-      const by = 0.2 + Math.cos(this.sportsClock * 1.4) * 0.75;
+      const bx = 17.7 + t * 2.9;
+      const by = Math.cos(this.sportsClock * 1.4) * 0.8;
       const bz = 0.22 + Math.abs(Math.sin(this.sportsClock * 3.2)) * 0.4;
       const ball = this.project(bx, by, bz);
       ctx.fillStyle = '#f8fafc';
@@ -1407,77 +1680,16 @@ export class Office3DScene {
     }
   }
 
-  drawBlueprintPlot(ctx, x1, y1, x2, y2, label, roomId) {
-    this.drawFloorQuad(ctx, x1, y1, x2, y2, 'rgba(56, 189, 248, 0.06)', 'rgba(56, 189, 248, 0.5)');
-    const cx = (x1 + x2) / 2;
-    const cy = (y1 + y2) / 2;
-    this.drawZoneLabel(ctx, cx, cy, 0.25, label, '#7dd3fc');
-    const p = this.project(cx, cy, 0.2);
-    this.hitBoxes.push({ id: `room:${roomId}`, sx: p.sx, sy: p.sy, radius: 26 * this.zoom });
-  }
-
-  drawServerRoom3D(ctx, tier) {
-    const rackCoords = [
-      [-13.5, -7.2],
-      [-12.2, -7.2],
-      [-13.5, -5.1],
-      [-12.2, -5.1]
-    ];
-    if (tier >= 2) {
-      rackCoords.push([-11.2, -7.2], [-11.2, -5.1]);
-    }
-    const blink = !this.reducedMotion && Math.sin(this.clockSec * 5) > 0;
-    for (let i = 0; i < rackCoords.length; i += 1) {
-      const [rx, ry] = rackCoords[i];
-      this.drawBox3D(ctx, rx, ry, 0, 0.68, 0.68, 1.75, '#0f172a');
-      this.drawBox3D(ctx, rx, ry + 0.35, 1.3, 0.52, 0.05, 0.14, blink ^ (i % 2 === 0) ? '#38bdf8' : '#34d399', 0);
-      this.drawBox3D(ctx, rx, ry + 0.35, 0.85, 0.52, 0.05, 0.1, '#facc15', 0);
-    }
-    if (tier >= 3) {
-      // Cooling cylinder & holographic network hub
-      this.drawBox3D(ctx, -12.5, -6.1, 0, 0.75, 0.75, 1.9, '#0369a1');
-      this.drawBox3D(ctx, -12.5, -6.1, 1.9, 0.5, 0.5, 0.3, '#38bdf8');
-    }
-  }
-
-  drawConferenceRoom3D(ctx, tier) {
-    // Glass boardroom table + 6 chairs + presentation screen
-    this.drawBox3D(ctx, -12.5, 0.0, 0.38, 1.35, 2.7, 0.1, '#38bdf8');
-    this.drawBox3D(ctx, -12.5, 0.0, 0, 0.75, 1.8, 0.38, '#1e293b');
-    for (const cy of [-0.9, 0.0, 0.9]) {
-      this.drawBox3D(ctx, -13.55, cy, 0, 0.42, 0.42, 0.45, '#475569');
-      this.drawBox3D(ctx, -11.45, cy, 0, 0.42, 0.42, 0.45, '#475569');
-    }
-    this.drawBox3D(ctx, -14.1, 0.0, 0.7, 0.12, 2.1, 1.0, tier >= 2 ? '#a78bfa' : '#334155');
-    if (tier >= 3) {
-      this.drawBox3D(ctx, -12.5, 0.0, 0.48, 0.55, 0.55, 0.35, '#fbbf24');
-    }
-  }
-
-  drawLobbyRoom3D(ctx, tier) {
-    // Reception desk + monitor + waiting sofa + trees
-    this.drawBox3D(ctx, -12.4, 5.2, 0, 1.85, 0.75, 0.78, '#78350f');
-    this.drawBox3D(ctx, -12.4, 5.1, 0.78, 0.65, 0.14, 0.42, '#38bdf8');
-    this.drawBox3D(ctx, -12.6, 7.4, 0, 1.9, 0.75, 0.4, '#10b981');
-    if (tier >= 2) {
-      this.drawBox3D(ctx, -14.0, 6.2, 0.5, 0.12, 1.8, 1.1, '#34d399');
-    }
-    if (tier >= 3) {
-      this.drawTree3D(ctx, -11.3, 7.6);
-      this.drawTree3D(ctx, -13.8, 4.2);
-    }
-  }
-
   drawPingPongTableAndBall3D(ctx) {
-    this.drawBox3D(ctx, 12.4, 4.8, 0.55, 1.5, 0.95, 0.12, '#15803d');
-    this.drawBox3D(ctx, 12.4, 4.8, 0, 0.9, 0.6, 0.55, '#1e293b');
-    this.drawBox3D(ctx, 12.4, 4.8, 0.67, 0.06, 0.95, 0.18, '#f8fafc');
+    this.drawBox3D(ctx, 18.8, 5.8, 0.55, 1.5, 0.95, 0.12, '#15803d');
+    this.drawBox3D(ctx, 18.8, 5.8, 0, 0.9, 0.6, 0.55, '#1e293b');
+    this.drawBox3D(ctx, 18.8, 5.8, 0.67, 0.06, 0.95, 0.18, '#f8fafc');
 
     if (this.hasActivity('pingpong')) {
       const cycle = (Math.sin(this.sportsClock * 3.8) + 1) / 2;
-      const bx = 11.75 + cycle * 1.3;
+      const bx = 18.15 + cycle * 1.3;
       const bz = 0.78 + Math.abs(Math.sin(this.sportsClock * 3.8)) * 0.35;
-      const ball = this.project(bx, 4.8, bz);
+      const ball = this.project(bx, 5.8, bz);
       ctx.fillStyle = '#ffffff';
       ctx.beginPath();
       ctx.arc(ball.sx, ball.sy, 2.8 * this.zoom, 0, Math.PI * 2);
@@ -1490,30 +1702,27 @@ export class Office3DScene {
     const phase = this.reducedMotion ? 0 : Math.floor(this.clockSec * 3);
     for (let row = 0; row < 3; row += 1) {
       for (let col = 0; col < 3; col += 1) {
-        const x1 = 12.2 + col * 0.85;
-        const y1 = 6.9 + row * 0.72;
+        const x1 = 18.6 + col * 0.85;
+        const y1 = 9.4 + row * 0.85;
         const color = palette[(row * 3 + col + phase) % palette.length];
-        this.drawFloorQuad(ctx, x1, y1, x1 + 0.78, y1 + 0.65, color);
+        this.drawFloorQuad(ctx, x1, y1, x1 + 0.78, y1 + 0.75, color);
       }
     }
   }
 
   drawDrinksBar3D(ctx, x, y) {
-    // 3D Bar counter with glowing cyan trim + colorful bottles & drinks
     this.drawBox3D(ctx, x, y, 0, 1.4, 0.72, 0.78, '#312e81');
     this.drawBox3D(ctx, x, y + 0.36, 0.65, 1.42, 0.06, 0.12, '#22d3ee', 0);
-    // Drink glasses & bottles on bar top
     this.drawBox3D(ctx, x - 0.42, y, 0.78, 0.14, 0.14, 0.28, '#f472b6');
     this.drawBox3D(ctx, x - 0.12, y + 0.08, 0.78, 0.14, 0.14, 0.22, '#facc15');
     this.drawBox3D(ctx, x + 0.22, y - 0.04, 0.78, 0.14, 0.14, 0.26, '#34d399');
     this.drawBox3D(ctx, x + 0.48, y + 0.05, 0.78, 0.14, 0.14, 0.2, '#38bdf8');
-    // 2 Bar stools
     this.drawBox3D(ctx, x - 0.35, y + 0.62, 0, 0.3, 0.3, 0.45, '#64748b');
     this.drawBox3D(ctx, x + 0.35, y + 0.62, 0, 0.3, 0.3, 0.45, '#64748b');
   }
 
   drawDiscoBall3D(ctx, x, y) {
-    const p = this.project(x, y, 2.1);
+    const p = this.project(x, y, 2.2);
     const r = 10 * this.zoom;
     const glow = this.reducedMotion ? 0.6 : (Math.sin(this.clockSec * 5) + 1) * 0.3 + 0.4;
     ctx.save();
@@ -1542,11 +1751,9 @@ export class Office3DScene {
   }
 
   drawCoffeeCafe3D(ctx, x, y) {
-    // Espresso counter + cold drinks cooler fridge
     this.drawBox3D(ctx, x, y, 0, 1.7, 0.7, 0.75, '#92400e');
     this.drawBox3D(ctx, x - 0.3, y, 0.75, 0.42, 0.34, 0.4, '#cbd5e1');
     this.drawBox3D(ctx, x + 0.35, y, 0.75, 0.2, 0.2, 0.2, '#f59e0b');
-    // Cold drinks glass cooler beside counter
     this.drawBox3D(ctx, x - 1.15, y, 0, 0.55, 0.55, 1.2, '#0ea5e9');
     this.drawBox3D(ctx, x - 1.15, y + 0.28, 0.25, 0.42, 0.05, 0.75, '#bae6fd', 0);
   }
@@ -1554,11 +1761,6 @@ export class Office3DScene {
   drawLoungeSofa3D(ctx, x, y) {
     this.drawBox3D(ctx, x, y, 0, 1.65, 0.75, 0.38, '#818cf8');
     this.drawBox3D(ctx, x, y + 0.28, 0.38, 1.65, 0.2, 0.38, '#6366f1');
-  }
-
-  drawArcade3D(ctx, x, y) {
-    this.drawBox3D(ctx, x, y, 0, 0.75, 0.68, 1.35, '#9333ea');
-    this.drawBox3D(ctx, x, y + 0.18, 0.78, 0.56, 0.3, 0.38, '#38bdf8');
   }
 
   drawTree3D(ctx, x, y) {
@@ -1571,11 +1773,10 @@ export class Office3DScene {
     const style = CHARACTER_STYLE[actor.id] || CHARACTER_STYLE.athena;
     const isSwimming = actor.activity === 'swim' && !actor.walking;
 
-    // Animated swimming laps in the pool!
     let renderX = actor.x;
     let renderY = actor.y;
     if (isSwimming) {
-      renderY = -5.8 + Math.sin(this.clockSec * 1.1 + (actor.id.charCodeAt(0) % 5)) * 2.1;
+      renderY = -8.5 + Math.sin(this.clockSec * 1.1 + (actor.id.charCodeAt(0) % 5)) * 2.5;
       const pWater = this.project(renderX, renderY, 0.06);
       const ripple = 10 + (Math.sin(this.clockSec * 5) + 1) * 4;
       ctx.strokeStyle = 'rgba(186, 230, 253, 0.75)';
@@ -1584,7 +1785,6 @@ export class Office3DScene {
       ctx.ellipse(pWater.sx, pWater.sy, ripple * this.zoom, ripple * 0.48 * this.zoom, 0, 0, Math.PI * 2);
       ctx.stroke();
 
-      // Swim cap + head + freestyle arms above water
       this.drawBox3D(ctx, renderX, renderY, 0.04, 0.45, 0.75, 0.18, style.suit);
       this.drawBox3D(ctx, renderX, renderY + 0.35, 0.14, 0.34, 0.34, 0.3, style.skin);
       this.drawBox3D(ctx, renderX, renderY + 0.35, 0.36, 0.36, 0.36, 0.12, '#38bdf8');
@@ -1687,7 +1887,7 @@ export class Office3DScene {
     }
 
     const headPt = this.project(renderX, renderY, zBase + 0.85);
-    this.hitBoxes.push({ id: actor.id, sx: headPt.sx, sy: headPt.sy, radius: 20 * this.zoom });
+    this.hitBoxes.push({ id: actor.id, sx: headPt.sx, sy: headPt.sy, radius: 22 * this.zoom });
 
     ctx.font = '700 9px Inter, system-ui, sans-serif';
     ctx.textAlign = 'center';
@@ -1698,14 +1898,32 @@ export class Office3DScene {
     ctx.fillText(actor.name, shadow.sx, shadow.sy + 14);
   }
 
+  drawDepartmentBanner(ctx, wx, wy, wz, text, color) {
+    const p = this.project(wx, wy, wz);
+    ctx.save();
+    ctx.font = '800 9px Inter, system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    const w = ctx.measureText(text).width + 14;
+    ctx.fillStyle = 'rgba(2, 6, 23, 0.9)';
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.1;
+    ctx.beginPath();
+    ctx.roundRect(p.sx - w / 2, p.sy - 13, w, 15, 4);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = color;
+    ctx.fillText(text, p.sx, p.sy - 2.5);
+    ctx.restore();
+  }
+
   drawZoneLabel(ctx, wx, wy, wz, text, color) {
     const p = this.project(wx, wy, wz);
     ctx.save();
-    ctx.font = '700 8.5px Inter, system-ui, sans-serif';
+    ctx.font = '700 8px Inter, system-ui, sans-serif';
     ctx.textAlign = 'center';
     const w = ctx.measureText(text).width + 8;
-    ctx.fillStyle = 'rgba(2, 6, 23, 0.82)';
-    ctx.fillRect(p.sx - w / 2, p.sy - 10, w, 12.5);
+    ctx.fillStyle = 'rgba(2, 6, 23, 0.85)';
+    ctx.fillRect(p.sx - w / 2, p.sy - 9.5, w, 12);
     ctx.fillStyle = color;
     ctx.fillText(text, p.sx, p.sy - 0.5);
     ctx.restore();

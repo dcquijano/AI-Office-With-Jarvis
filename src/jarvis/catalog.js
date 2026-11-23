@@ -37,11 +37,64 @@ export const JARVIS_STAGES = Object.freeze([
   }
 ]);
 
+export const DEPARTMENTS = Object.freeze([
+  {
+    id: 'executive',
+    name: 'Executive & AI Core Dept',
+    shortName: 'Executive',
+    accent: '#fbbf24',
+    focus: { x: 1.4, y: 0.0, zoom: 1.45 },
+    description: 'Central J.A.R.V.I.S. AI Brain Core, CEO Executive Suite, and Glass Boardroom.'
+  },
+  {
+    id: 'engineering',
+    name: 'Software Engineering Dept',
+    shortName: 'Engineering',
+    accent: '#22d3ee',
+    focus: { x: 1.2, y: -9.5, zoom: 1.45 },
+    description: 'Dedicated north wing housing Systems/Backend (Vulcan) and Web/Frontend (Nova).'
+  },
+  {
+    id: 'design-qa',
+    name: 'Design & QA Assurance Dept',
+    shortName: 'Design & QA',
+    accent: '#f472b6',
+    focus: { x: 1.2, y: 9.5, zoom: 1.45 },
+    description: 'Dedicated south wing housing UI/UX Design Studio (Iris) and QA Verification Lab (Vera).'
+  },
+  {
+    id: 'infrastructure',
+    name: 'Infrastructure & Security Dept',
+    shortName: 'Infra & Sec',
+    accent: '#60a5fa',
+    focus: { x: -14.8, y: -7.5, zoom: 1.45 },
+    description: 'West cyber-ops wing housing the Server & Compute Vault, Security Ops (Aegis), and DevOps (Orion).'
+  },
+  {
+    id: 'strategy',
+    name: 'Strategy, Research & Lobby Dept',
+    shortName: 'Strategy',
+    accent: '#a78bfa',
+    focus: { x: -14.8, y: 7.5, zoom: 1.45 },
+    description: 'West strategy wing with Reception Lobby, Strategy & Product (Athena), and Research Library (Sage).'
+  },
+  {
+    id: 'wellness',
+    name: 'Wellness, Sports & Lounge Dept',
+    shortName: 'Wellness',
+    accent: '#34d399',
+    focus: { x: 16.4, y: 0.0, zoom: 1.18 },
+    description: 'East athletic & social club featuring Pickleball, Olympic Pool, Gym, Basketball, Soccer, Coffee Cafe, and Bar.'
+  }
+]);
+
 export const JARVIS_CONTROLLER = Object.freeze({
   id: 'jarvis',
   name: 'J.A.R.V.I.S.',
   title: 'Central AI Brain & Orchestrator',
   model: 'jarvis-brain-v4',
+  department: 'executive',
+  departmentName: 'Executive & AI Core Dept',
   zone: 'Central AI Brain Core',
   desk: { x: 42, y: 50 },
   accent: '#38bdf8',
@@ -62,6 +115,8 @@ export const AGENT_TEAM = Object.freeze([
     name: 'CEO',
     role: 'Chief Executive Officer',
     specialty: 'executive',
+    department: 'executive',
+    departmentName: 'Executive & AI Core Dept',
     model: 'executive-vision-70b',
     hfEquivalent: 'Executive-LLM / Strategic Alignment',
     zone: 'CEO Executive Suite',
@@ -82,6 +137,8 @@ export const AGENT_TEAM = Object.freeze([
     name: 'Athena',
     role: 'Strategy & Product Lead',
     specialty: 'planning',
+    department: 'strategy',
+    departmentName: 'Strategy, Research & Lobby Dept',
     model: 'planner-reasoning-70b',
     hfEquivalent: 'meta-llama / Qwen-Instruct (Task Decomposition)',
     zone: 'Strategy Suite',
@@ -102,6 +159,8 @@ export const AGENT_TEAM = Object.freeze([
     name: 'Sage',
     role: 'Research & Knowledge Analyst',
     specialty: 'research',
+    department: 'strategy',
+    departmentName: 'Strategy, Research & Lobby Dept',
     model: 'retrieval-synthesis-32b',
     hfEquivalent: 'facebook/bart-large-cnn & Sentence-Transformers',
     zone: 'Research Library',
@@ -122,6 +181,8 @@ export const AGENT_TEAM = Object.freeze([
     name: 'Vulcan',
     role: 'Systems & Backend Programmer',
     specialty: 'coding',
+    department: 'engineering',
+    departmentName: 'Software Engineering Dept',
     model: 'coder-architect-34b',
     hfEquivalent: 'Qwen2.5-Coder / DeepSeek-Coder',
     zone: 'Systems Prog Bay',
@@ -142,6 +203,8 @@ export const AGENT_TEAM = Object.freeze([
     name: 'Nova',
     role: 'Web Developer & Frontend Programmer',
     specialty: 'webdev',
+    department: 'engineering',
+    departmentName: 'Software Engineering Dept',
     model: 'web-fullstack-coder-32b',
     hfEquivalent: 'Qwen2.5-Coder-32B / StarCoder2',
     zone: 'Web Dev Studio',
@@ -162,6 +225,8 @@ export const AGENT_TEAM = Object.freeze([
     name: 'Iris',
     role: 'UI / UX Designer',
     specialty: 'design',
+    department: 'design-qa',
+    departmentName: 'Design & QA Assurance Dept',
     model: 'multimodal-vision-ui',
     hfEquivalent: 'SDXL / CLIP / Layout-Vision',
     zone: 'UI Design Studio',
@@ -182,6 +247,8 @@ export const AGENT_TEAM = Object.freeze([
     name: 'Aegis',
     role: 'Cybersecurity Specialist',
     specialty: 'security',
+    department: 'infrastructure',
+    departmentName: 'Infrastructure & Security Dept',
     model: 'sec-audit-guard-22b',
     hfEquivalent: 'SecBERT / Policy-Guard',
     zone: 'Security Ops Vault',
@@ -202,6 +269,8 @@ export const AGENT_TEAM = Object.freeze([
     name: 'Vera',
     role: 'Quality Test Assurance (QA) Lead',
     specialty: 'qa',
+    department: 'design-qa',
+    departmentName: 'Design & QA Assurance Dept',
     model: 'qa-verifier-14b',
     hfEquivalent: 'CodeBERT-TestGen / Eval-Guard',
     zone: 'QA Testing Lab',
@@ -222,6 +291,8 @@ export const AGENT_TEAM = Object.freeze([
     name: 'Orion',
     role: 'DevOps & Cloud Engineer',
     specialty: 'devops',
+    department: 'infrastructure',
+    departmentName: 'Infrastructure & Security Dept',
     model: 'infra-ops-16b',
     hfEquivalent: 'InfraLM / Ops-Copilot',
     zone: 'Cloud Ops Hub',

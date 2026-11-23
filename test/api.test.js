@@ -88,6 +88,8 @@ test('HTTP API serves health, team, guide, static UI, saves folder, and tracks t
     assert.equal(teamRes.status, 200);
     const teamJson = await teamRes.json();
     assert.equal(teamJson.team.length, 9);
+    assert.equal(teamJson.departments.length, 6);
+    assert.ok(teamJson.team.every((a) => typeof a.department === 'string' && a.departmentName));
     assert.ok(teamJson.team.some((a) => a.id === 'ceo'));
     assert.ok(teamJson.team.every((a) => Array.isArray(a.skills) && a.skills.length >= 4));
     assert.equal(teamJson.stages.length, 4);
@@ -237,12 +239,16 @@ test('HTTP API enforces validation, SSRF baseUrl guard, 404s, and cursor paginat
   });
   assert.equal(unknownAgentChat.status, 404);
 
-  // CEO Office Upgrades & UI Theme endpoints
+  // CEO Office Upgrades, 1-by-1 Rooms & Department Builder endpoints
   const getUpgrades = await client.request('GET', '/api/office/upgrades');
   assert.equal(getUpgrades.status, 200);
   const initialUp = await getUpgrades.json();
   assert.equal(initialUp.officeLevel, 3);
   assert.equal(initialUp.uiTheme, 'stark-cyan');
+  assert.equal(initialUp.builtCount, 18);
+  assert.equal(initialUp.totalRooms, 18);
+  assert.equal(initialUp.departments.length, 6);
+  assert.equal(initialUp.roomCatalog.length, 18);
 
   const putUpgrades = await client.request('PUT', '/api/office/upgrades', {
     headers: { 'Content-Type': 'application/json' },
@@ -253,9 +259,48 @@ test('HTTP API enforces validation, SSRF baseUrl guard, 404s, and cursor paginat
   assert.equal(updatedUp.officeLevel, 8);
   assert.equal(updatedUp.uiTheme, 'executive-gold');
 
+  // Reset all rooms to blueprint plots, then build 1-by-1 and by department
+  const blueprintRes = await client.request('PUT', '/api/office/upgrades', {
+    headers: { 'Content-Type': 'application/json' },
+    body: { preset: 'blueprint' }
+  });
+  assert.equal(blueprintRes.status, 200);
+  assert.equal((await blueprintRes.json()).builtCount, 0);
+
+  const stepBuildRes = await client.request('PUT', '/api/office/upgrades', {
+    headers: { 'Content-Type': 'application/json' },
+    body: { rooms: { serverRoom: 2, conferenceRoom: 1, nova: 1 } }
+  });
+  assert.equal(stepBuildRes.status, 200);
+  const stepData = await stepBuildRes.json();
+  assert.equal(stepData.builtCount, 3);
+  assert.equal(stepData.rooms.serverRoom, 2);
+  assert.equal(stepData.rooms.conferenceRoom, 1);
+
+  const deptBuildRes = await client.request('PUT', '/api/office/upgrades', {
+    headers: { 'Content-Type': 'application/json' },
+    body: { departmentPreset: { departmentId: 'engineering', tier: 3 } }
+  });
+  assert.equal(deptBuildRes.status, 200);
+  const deptData = await deptBuildRes.json();
+  assert.equal(deptData.rooms.vulcan, 3);
+  assert.equal(deptData.rooms.nova, 3);
+
   const badUpgrade = await client.request('PUT', '/api/office/upgrades', {
     headers: { 'Content-Type': 'application/json' },
     body: { deskTier: 9 }
   });
   assert.equal(badUpgrade.status, 400);
+
+  const badRoomRes = await client.request('PUT', '/api/office/upgrades', {
+    headers: { 'Content-Type': 'application/json' },
+    body: { rooms: { unknownRoom: 1 } }
+  });
+  assert.equal(badRoomRes.status, 400);
+
+  const badDeptRes = await client.request('PUT', '/api/office/upgrades', {
+    headers: { 'Content-Type': 'application/json' },
+    body: { departmentPreset: { departmentId: 'unknownDept', tier: 1 } }
+  });
+  assert.equal(badDeptRes.status, 400);
 });

@@ -154,7 +154,7 @@ body {
 }
 
 .layout {
-  max-width: 1460px;
+  max-width: 1680px;
   margin: 0 auto;
   padding: 0.85rem 1.25rem 2rem;
   display: flex;
@@ -520,9 +520,30 @@ body {
 /* Main Workspace Split */
 .workspace-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
   gap: 1rem;
   align-items: stretch;
+}
+
+.dept-cam-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.65rem;
+}
+
+.dept-cam-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.dept-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--dept-color, var(--accent));
 }
 
 /* Virtual AI Office Floor */
@@ -538,7 +559,7 @@ body {
   display: block;
   width: 100%;
   height: auto;
-  aspect-ratio: 960 / 580;
+  aspect-ratio: 1200 / 720;
   touch-action: none;
 }
 
@@ -754,6 +775,32 @@ body {
   gap: 0.35rem;
 }
 
+.dept-builder-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.45rem;
+}
+
+.dept-room-item {
+  padding: 0.5rem 0.6rem;
+  border-radius: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  background: rgba(15, 23, 42, 0.55);
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.dept-room-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+}
+
 .artifact-preview {
   margin: 0.4rem 0 0;
   padding: 0.65rem;
@@ -852,7 +899,7 @@ body {
 .tab-panel {
   flex: 1;
   overflow-y: auto;
-  max-height: 560px;
+  max-height: 660px;
   scrollbar-width: thin;
   scrollbar-color: #334155 #091122;
 }

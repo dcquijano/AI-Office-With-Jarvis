@@ -2,12 +2,14 @@ import { Office3DScene } from './office3d.js';
 
 const state = {
   team: [],
+  departments: [],
   controller: null,
   stages: [],
   tourSteps: [],
   presets: [],
   tourIndex: -1,
   selectedDeskId: 'jarvis',
+  activeDepartmentId: null,
   ceoFocus: false,
   officeUpgrades: null,
   draggedTaskPrompt: '',
@@ -56,6 +58,7 @@ const els = {
   camZoomOut: document.getElementById('cam-zoom-out'),
   camReset: document.getElementById('cam-reset'),
   camCeoFocus: document.getElementById('cam-ceo-focus'),
+  deptCamBar: document.getElementById('dept-cam-bar'),
   briefingContent: document.getElementById('briefing-content'),
   deskInspectorContent: document.getElementById('desk-inspector-content'),
   ceoStudioContent: document.getElementById('ceo-studio-content'),
@@ -281,45 +284,183 @@ async function saveOfficeUpgrade(patch) {
   }
 }
 
+function renderDepartmentCamBar() {
+  if (!els.deptCamBar) return;
+  clearElement(els.deptCamBar);
+  els.deptCamBar.appendChild(createEl('span', 'agent-actions-label', 'Departments:'));
+
+  const allBtn = createEl(
+    'button',
+    `chip-btn dept-cam-btn ${state.activeDepartmentId === null && !state.ceoFocus ? 'active-chip' : ''}`,
+    'All Campus'
+  );
+  allBtn.type = 'button';
+  allBtn.addEventListener('click', () => focusDepartmentView(null));
+  els.deptCamBar.appendChild(allBtn);
+
+  for (const dept of state.departments) {
+    const btn = createEl(
+      'button',
+      `chip-btn dept-cam-btn ${state.activeDepartmentId === dept.id ? 'active-chip' : ''}`
+    );
+    btn.type = 'button';
+    btn.title = dept.description;
+    const dot = createEl('span', 'dept-dot');
+    dot.style.setProperty('--dept-color', dept.accent);
+    btn.appendChild(dot);
+    btn.appendChild(document.createTextNode(dept.shortName));
+    btn.addEventListener('click', () => focusDepartmentView(dept.id));
+    els.deptCamBar.appendChild(btn);
+  }
+}
+
+function focusDepartmentView(departmentId) {
+  state.ceoFocus = false;
+  if (els.camCeoFocus) {
+    els.camCeoFocus.classList.remove('active-chip');
+    els.camCeoFocus.textContent = 'Enter CEO Office';
+  }
+  state.activeDepartmentId = departmentId;
+  if (departmentId) {
+    officeScene?.focusDepartment(departmentId);
+  } else {
+    officeScene?.resetCamera();
+  }
+  renderDepartmentCamBar();
+}
+
 function renderCeoStudio() {
   if (!els.ceoStudioContent) return;
   clearElement(els.ceoStudioContent);
   const u = state.officeUpgrades;
   if (!u) {
-    els.ceoStudioContent.appendChild(createEl('div', 'empty-state', 'Loading CEO Office Studio...'));
+    els.ceoStudioContent.appendChild(createEl('div', 'empty-state', 'Loading Department Office Builder...'));
     return;
   }
 
   const wrap = createEl('div', 'studio-grid');
 
+  // 1. Campus & 1-by-1 Office Builder Overview
   const headerCard = createEl('div', 'studio-module-card');
   headerCard.appendChild(
     createEl(
       'div',
       'deliverable-meta',
-      `CEO Executive Suite · Level ${u.officeLevel} / ${u.maxLevel}`
+      `Multi-Department Builder · ${u.builtCount}/${u.totalRooms} Rooms Built (${u.totalRoomLevels}/${u.maxRoomLevels} Upgrades)`
     )
   );
+  const progressTrack = createEl('div', 'token-bar-track');
+  const progressFill = createEl('div', 'token-bar-fill');
+  progressFill.style.width = `${Math.round((u.totalRoomLevels / Math.max(1, u.maxRoomLevels)) * 100)}%`;
+  progressTrack.appendChild(progressFill);
+  headerCard.appendChild(progressTrack);
+
   headerCard.appendChild(
     createEl(
       'div',
       'briefing-summary',
-      'Upgrade the 3D interior inside the CEO Office (next to J.A.R.V.I.S. AI Brain) and customize the live HUD UI theme.'
+      'Build rooms 1-by-1 across each Department or manage an entire wing at once. Click any Tier 0 blueprint plot on the 3D campus to construct it.'
     )
   );
-  const viewRow = createEl('div', 'studio-tier-row');
+
+  const presetRow = createEl('div', 'studio-tier-row');
+  const plotBtn = createEl('button', 'chip-btn', 'Build 1-by-1 (Reset to Plots)');
+  plotBtn.type = 'button';
+  plotBtn.addEventListener('click', () => saveOfficeUpgrade({ preset: 'blueprint' }));
+
+  const starterBtn = createEl('button', 'chip-btn', 'Build All (Tier 1)');
+  starterBtn.type = 'button';
+  starterBtn.addEventListener('click', () => saveOfficeUpgrade({ preset: 'starter' }));
+
+  const maxBtn = createEl('button', 'chip-btn', 'Max All (Tier 3)');
+  maxBtn.type = 'button';
+  maxBtn.addEventListener('click', () => saveOfficeUpgrade({ preset: 'max' }));
+
   const enterBtn = createEl(
     'button',
     `chip-btn ${state.ceoFocus ? 'active-chip' : ''}`,
-    state.ceoFocus ? 'Exit CEO Office (Full Campus)' : 'Enter CEO Office (3D Zoom)'
+    state.ceoFocus ? 'Exit CEO Office' : 'Enter CEO Office'
   );
   enterBtn.type = 'button';
   enterBtn.addEventListener('click', () => toggleCeoOfficeFocus());
-  viewRow.appendChild(enterBtn);
-  headerCard.appendChild(viewRow);
+
+  presetRow.append(plotBtn, starterBtn, maxBtn, enterBtn);
+  headerCard.appendChild(presetRow);
   wrap.appendChild(headerCard);
 
-  // UI Theme Switcher
+  // 2. Department Wings & Room-by-Room Controls
+  const departments = u.departments || state.departments || [];
+  const roomsCatalog = u.roomCatalog || [];
+
+  for (const dept of departments) {
+    const deptRooms = roomsCatalog.filter((r) => r.department === dept.id);
+    if (deptRooms.length === 0) continue;
+
+    const deptBuilt = deptRooms.filter((r) => (u.rooms?.[r.id] ?? 1) >= 1).length;
+    const deptCard = createEl('div', 'studio-module-card');
+
+    const head = createEl('div', 'dept-builder-head');
+    head.appendChild(createEl('div', 'deliverable-meta', `${dept.name} · ${deptBuilt}/${deptRooms.length} Built`));
+
+    const deptActions = createEl('div', 'studio-tier-row');
+    const viewBtn = createEl('button', 'chip-btn', 'View Wing');
+    viewBtn.type = 'button';
+    viewBtn.addEventListener('click', () => focusDepartmentView(dept.id));
+
+    const buildDeptBtn = createEl('button', 'chip-btn', 'Build Dept');
+    buildDeptBtn.type = 'button';
+    buildDeptBtn.addEventListener('click', () =>
+      saveOfficeUpgrade({ departmentPreset: { departmentId: dept.id, tier: 1 } })
+    );
+
+    const maxDeptBtn = createEl('button', 'chip-btn', 'Max Dept');
+    maxDeptBtn.type = 'button';
+    maxDeptBtn.addEventListener('click', () =>
+      saveOfficeUpgrade({ departmentPreset: { departmentId: dept.id, tier: 3 } })
+    );
+
+    deptActions.append(viewBtn, buildDeptBtn, maxDeptBtn);
+    head.appendChild(deptActions);
+    deptCard.appendChild(head);
+    deptCard.appendChild(createEl('div', 'briefing-summary', dept.description));
+
+    for (const room of deptRooms) {
+      const currentTier = u.rooms?.[room.id] ?? 1;
+      const roomBox = createEl('div', 'dept-room-item');
+      const roomHead = createEl('div', 'dept-room-head');
+      roomHead.appendChild(createEl('strong', '', room.name));
+      const statusText =
+        currentTier === 0 ? 'Plot (Unbuilt)' : `Tier ${currentTier}/3`;
+      roomHead.appendChild(createEl('span', 'tag', statusText));
+      roomBox.appendChild(roomHead);
+      roomBox.appendChild(createEl('div', 'briefing-summary', room.summary));
+
+      const tierRow = createEl('div', 'studio-tier-row');
+      for (const opt of [
+        { tier: 0, label: 'Plot (0)' },
+        { tier: 1, label: 'Build (T1)' },
+        { tier: 2, label: 'Upgrade (T2)' },
+        { tier: 3, label: 'Max (T3)' }
+      ]) {
+        const btn = createEl(
+          'button',
+          `chip-btn ${currentTier === opt.tier ? 'active-chip' : ''}`,
+          opt.label
+        );
+        btn.type = 'button';
+        btn.addEventListener('click', () =>
+          saveOfficeUpgrade({ rooms: { [room.id]: opt.tier } })
+        );
+        tierRow.appendChild(btn);
+      }
+      roomBox.appendChild(tierRow);
+      deptCard.appendChild(roomBox);
+    }
+
+    wrap.appendChild(deptCard);
+  }
+
+  // 3. UI Theme Switcher
   const themeCard = createEl('div', 'studio-module-card');
   themeCard.appendChild(createEl('div', 'deliverable-meta', 'UI Design Theme'));
   const themeRow = createEl('div', 'studio-tier-row');
@@ -336,7 +477,7 @@ function renderCeoStudio() {
   themeCard.appendChild(themeRow);
   wrap.appendChild(themeCard);
 
-  // Upgradable 3D Modules inside CEO Office
+  // 4. Upgradable 3D Modules inside CEO Executive Suite
   for (const modKey of ['deskTier', 'brainLinkTier', 'decorTier']) {
     const mod = u.modules?.[modKey];
     if (!mod) continue;
@@ -345,7 +486,7 @@ function renderCeoStudio() {
 
     const card = createEl('div', 'studio-module-card');
     card.appendChild(
-      createEl('div', 'deliverable-meta', `${mod.label} · Tier ${currentTier}/3`)
+      createEl('div', 'deliverable-meta', `CEO Suite · ${mod.label} · Tier ${currentTier}/3`)
     );
     card.appendChild(createEl('strong', '', activeTierObj.name));
     card.appendChild(createEl('div', 'briefing-summary', activeTierObj.summary));
@@ -576,7 +717,10 @@ function renderDeskInspector() {
   card.appendChild(createEl('p', 'briefing-summary', agent.bio));
 
   const modelCard = createEl('div', 'deliverable-item');
-  modelCard.appendChild(createEl('div', 'deliverable-meta', `Zone: ${agent.zone} · Now: ${activity}`));
+  const deptLabel = agent.departmentName ? `${agent.departmentName} · ` : '';
+  modelCard.appendChild(
+    createEl('div', 'deliverable-meta', `${deptLabel}Room: ${agent.zone} · Now: ${activity}`)
+  );
   modelCard.appendChild(
     createEl('div', '', `Profile: ${agent.model} · HF Equivalent: ${agent.hfEquivalent}`)
   );
@@ -839,11 +983,13 @@ function renderAll() {
 
 function toggleCeoOfficeFocus(forceState = null) {
   state.ceoFocus = forceState !== null ? forceState : !state.ceoFocus;
+  state.activeDepartmentId = state.ceoFocus ? 'executive' : null;
   officeScene?.focusCeoOffice(state.ceoFocus);
   if (els.camCeoFocus) {
     els.camCeoFocus.classList.toggle('active-chip', state.ceoFocus);
     els.camCeoFocus.textContent = state.ceoFocus ? 'Exit CEO Office' : 'Enter CEO Office';
   }
+  renderDepartmentCamBar();
   if (state.ceoFocus) {
     selectDesk('ceo', false);
     switchTab('tab-ceo-studio');
@@ -1049,7 +1195,18 @@ function setupDragAndDropTasks() {
 
 async function init() {
   officeScene = new Office3DScene(els.officeCanvas, {
-    onSelectAgent: (id) => selectDesk(id, true),
+    onSelectAgent: (id) => {
+      if (typeof id === 'string' && id.startsWith('room:')) {
+        const roomId = id.slice(5);
+        const currentTier = state.officeUpgrades?.rooms?.[roomId] ?? 0;
+        switchTab('tab-ceo-studio');
+        if (currentTier === 0) {
+          saveOfficeUpgrade({ rooms: { [roomId]: 1 } });
+        }
+        return;
+      }
+      selectDesk(id, true);
+    },
     onStatusChange: () => renderOfficeDock(),
     onBanter: ({ speakerId, text, zone }) => {
       const name =
@@ -1083,12 +1240,14 @@ async function init() {
 
   state.controller = teamData.controller;
   state.team = teamData.team;
+  state.departments = teamData.departments || [];
   state.stages = teamData.stages;
   state.tourSteps = guideData.tourSteps;
   state.presets = guideData.presets;
 
   updateModePill(health.llmConfigured);
   els.jarvisSpeech.textContent = state.controller.greeting;
+  renderDepartmentCamBar();
   renderPresets();
   renderAgentFilters();
   renderAll();
@@ -1101,13 +1260,7 @@ els.camRotLeft.addEventListener('click', () => officeScene?.rotateCamera(-Math.P
 els.camRotRight.addEventListener('click', () => officeScene?.rotateCamera(Math.PI / 6));
 els.camZoomIn.addEventListener('click', () => officeScene?.adjustZoom(0.14));
 els.camZoomOut.addEventListener('click', () => officeScene?.adjustZoom(-0.14));
-els.camReset.addEventListener('click', () => {
-  state.ceoFocus = false;
-  els.camCeoFocus.classList.remove('active-chip');
-  els.camCeoFocus.textContent = 'Enter CEO Office';
-  officeScene?.resetCamera();
-  renderCeoStudio();
-});
+els.camReset.addEventListener('click', () => focusDepartmentView(null));
 
 // Tabs
 for (const tabBtn of document.querySelectorAll('[role="tab"]')) {
