@@ -1,0 +1,21 @@
+{
+  "name": "jarvis-ai-office",
+  "version": "1.0.0",
+  "description": "Virtual AI Team Office orchestrated by J.A.R.V.I.S., inspired by microsoft/JARVIS (HuggingGPT) 4-stage architecture.",
+  "type": "module",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test test/*.test.js"
+  },
+  "keywords": [
+    "jarvis",
+    "hugginggpt",
+    "multi-agent",
+    "ai-office",
+    "orchestrator"
+  ],
+  "license": "MIT"
+}

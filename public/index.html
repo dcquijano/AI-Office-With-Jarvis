@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>J.A.R.V.I.S. AI Office — Multi-Agent Command Center</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">Skip to workspace</a>
+
+    <header class="topbar">
+      <div class="brand">
+        <div class="jarvis-orb" aria-hidden="true"></div>
+        <div>
+          <h1>J.A.R.V.I.S. AI Office</h1>
+          <p class="subtitle">Multi-Agent Team &amp; Virtual Office · Inspired by microsoft/JARVIS</p>
+        </div>
+      </div>
+
+      <div class="topbar-actions">
+        <span id="mode-pill" class="pill pill-neutral">Checking engine...</span>
+        <button id="tour-btn" type="button" class="btn btn-secondary">Guided Tour</button>
+        <button id="settings-btn" type="button" class="btn btn-secondary">LLM Settings</button>
+      </div>
+    </header>
+
+    <main id="main-content" class="layout">
+      <!-- Top Command Bar: J.A.R.V.I.S. Guide + Mission Directive side-by-side so 3D Campus sits above the fold -->
+      <div class="top-command-grid">
+        <section class="jarvis-guide-card" aria-label="J.A.R.V.I.S. Guide">
+          <div class="guide-header">
+            <div class="guide-avatar" aria-hidden="true">J</div>
+            <div class="guide-copy">
+              <div class="guide-title-row">
+                <h2>J.A.R.V.I.S. Guide</h2>
+                <span id="guide-stage-tag" class="tag">Standing By</span>
+              </div>
+              <p id="jarvis-speech" class="guide-speech" aria-live="polite">
+                Initializing office telemetry...
+              </p>
+            </div>
+          </div>
+
+          <div id="tour-controls" class="tour-controls" hidden>
+            <span id="tour-progress" class="tour-progress">Step 1 of 5</span>
+            <div class="tour-buttons">
+              <button id="tour-prev" type="button" class="btn btn-ghost">Previous</button>
+              <button id="tour-next" type="button" class="btn btn-primary">Next Step</button>
+              <button id="tour-close" type="button" class="btn btn-ghost">Exit Tour</button>
+            </div>
+          </div>
+
+          <form id="guide-ask-form" class="guide-ask-form">
+            <label class="sr-only" for="guide-question-input">Ask J.A.R.V.I.S. a question</label>
+            <input
+              id="guide-question-input"
+              name="question"
+              type="text"
+              maxlength="500"
+              placeholder="Ask J.A.R.V.I.S. (e.g., 'How does the 4-stage pipeline work?' or 'Who is in the office?')"
+            />
+            <button type="submit" class="btn btn-secondary">Ask J.A.R.V.I.S.</button>
+          </form>
+          <div id="guide-answer-box" class="guide-answer" hidden aria-live="polite"></div>
+        </section>
+
+        <!-- Mission Input & Controls -->
+        <section class="command-panel" aria-labelledby="mission-heading">
+          <div class="panel-header">
+            <h2 id="mission-heading">Mission Directive</h2>
+            <div id="preset-list" class="preset-chips" aria-label="Sample missions"></div>
+          </div>
+
+          <form id="mission-form" class="mission-form" novalidate>
+            <div class="field-group">
+              <label for="mission-prompt">What should the AI team build, research, or verify?</label>
+              <textarea
+                id="mission-prompt"
+                name="prompt"
+                rows="2"
+                maxlength="2000"
+                required
+                aria-describedby="mission-error"
+                placeholder="Example: Design the architecture, UX flow, and security checklist for a collaborative AI workspace..."
+              ></textarea>
+              <p id="mission-error" class="field-error" role="alert" hidden></p>
+            </div>
+
+            <div class="mission-controls-row">
+              <fieldset class="agent-filter">
+                <legend>Invited Office Specialists (leave all checked for auto-routing)</legend>
+                <div id="agent-checkboxes" class="agent-checkboxes"></div>
+              </fieldset>
+
+              <button id="dispatch-btn" type="submit" class="btn btn-primary btn-dispatch">
+                Dispatch Team
+              </button>
+            </div>
+          </form>
+        </section>
+      </div>
+
+      <!-- 4-Stage Pipeline Bar -->
+      <section class="pipeline-section" aria-label="Microsoft JARVIS 4-Stage Pipeline">
+        <ol id="pipeline-steps" class="pipeline-steps"></ol>
+      </section>
+
+      <!-- Main Workspace Split: Virtual Office Floor + Inspector/Briefing -->
+      <div class="workspace-grid">
+        <section class="office-panel" aria-labelledby="office-heading">
+          <div class="panel-header">
+            <div>
+              <h2 id="office-heading">3D AI Office &amp; Wellness Campus</h2>
+              <p class="panel-hint">Drag to rotate 3D view · Scroll to zoom · Click any AI to talk 1-on-1</p>
+            </div>
+            <div class="cam-controls" aria-label="3D Camera Controls">
+              <button id="cam-rot-left" type="button" class="chip-btn" title="Rotate 3D Left">Rotate L</button>
+              <button id="cam-rot-right" type="button" class="chip-btn" title="Rotate 3D Right">Rotate R</button>
+              <button id="cam-zoom-in" type="button" class="chip-btn" title="Zoom In">+</button>
+              <button id="cam-zoom-out" type="button" class="chip-btn" title="Zoom Out">-</button>
+              <button id="cam-reset" type="button" class="chip-btn" title="Reset 3D Camera">Reset</button>
+              <span id="office-activity-badge" class="tag">Idle</span>
+            </div>
+          </div>
+
+          <div id="office-floor" class="office-floor">
+            <canvas
+              id="office-canvas"
+              class="office-canvas"
+              width="960"
+              height="580"
+              role="img"
+              aria-label="Interactive 3D AI Office Campus with computers, pickleball court, fitness gym, coffee cafe, arcade, and autonomous AI specialists"
+            ></canvas>
+          </div>
+          <div id="office-dock" class="office-dock" aria-label="Quick select office specialist"></div>
+        </section>
+
+        <aside class="inspector-panel" aria-label="Specialist Inspector and Briefing">
+          <div class="tabs" role="tablist" aria-label="Mission Details">
+            <button type="button" role="tab" id="tab-briefing" aria-selected="true" aria-controls="panel-briefing" class="tab-btn active">
+              Briefing
+            </button>
+            <button type="button" role="tab" id="tab-desk" aria-selected="false" aria-controls="panel-desk" class="tab-btn">
+              Talk to AI
+            </button>
+            <button type="button" role="tab" id="tab-dag" aria-selected="false" aria-controls="panel-dag" class="tab-btn">
+              Task DAG
+            </button>
+            <button type="button" role="tab" id="tab-logs" aria-selected="false" aria-controls="panel-logs" class="tab-btn">
+              AI Chatter &amp; Log
+            </button>
+          </div>
+
+          <div id="panel-briefing" role="tabpanel" aria-labelledby="tab-briefing" class="tab-panel">
+            <div id="briefing-content" class="empty-state">
+              Dispatch a mission or pick a sample prompt above. J.A.R.V.I.S. will coordinate the office and present your executive briefing here.
+            </div>
+          </div>
+
+          <div id="panel-desk" role="tabpanel" aria-labelledby="tab-desk" class="tab-panel" hidden>
+            <div id="desk-inspector-content"></div>
+          </div>
+
+          <div id="panel-dag" role="tabpanel" aria-labelledby="tab-dag" class="tab-panel" hidden>
+            <div id="dag-content" class="empty-state">
+              No task dependency graph planned yet.
+            </div>
+          </div>
+
+          <div id="panel-logs" role="tabpanel" aria-labelledby="tab-logs" class="tab-panel" hidden>
+            <ul id="comms-log-list" class="comms-log-list">
+              <li class="log-empty">Waiting for mission telemetry...</li>
+            </ul>
+          </div>
+        </aside>
+      </div>
+    </main>
+
+    <!-- Optional Session LLM Settings Dialog -->
+    <dialog id="settings-dialog" class="modal" aria-labelledby="settings-title">
+      <form id="settings-form" method="dialog" class="modal-card">
+        <div class="modal-header">
+          <h2 id="settings-title">Optional Live LLM Settings</h2>
+          <button id="settings-close-x" type="button" class="btn btn-ghost" aria-label="Close settings">Close</button>
+        </div>
+        <p class="modal-note">
+          By default, the office runs offline on the built-in Local JARVIS Engine. You can connect a cloud API key <strong>or</strong> a local Qwen model via Ollama / LM Studio (no API key needed for localhost).
+        </p>
+
+        <div class="agent-actions-bar">
+          <span class="agent-actions-label">Local Qwen:</span>
+          <button id="preset-ollama-qwen" type="button" class="chip-btn">Ollama (qwen2.5:7b)</button>
+          <button id="preset-lmstudio-qwen" type="button" class="chip-btn">LM Studio (Qwen)</button>
+          <button id="detect-local-llm" type="button" class="chip-btn">Detect Local LLM</button>
+        </div>
+        <div id="local-llm-status" class="deliverable-item" hidden></div>
+
+        <div class="field-group">
+          <label for="setting-api-key">API Key (optional for cloud, blank for local Ollama/LM Studio)</label>
+          <input id="setting-api-key" type="password" autocomplete="off" placeholder="sk-... (optional for localhost)" />
+        </div>
+        <div class="field-group">
+          <label for="setting-base-url">Base URL (optional)</label>
+          <input id="setting-base-url" type="url" placeholder="https://api.openai.com/v1 or http://localhost:11434/v1" />
+        </div>
+        <div class="field-group">
+          <label for="setting-model">Planner/Worker Model (optional)</label>
+          <input id="setting-model" type="text" placeholder="gpt-4o-mini" />
+        </div>
+
+        <div class="modal-actions">
+          <button id="settings-clear" type="button" class="btn btn-ghost">Use Local Engine</button>
+          <button id="settings-save" type="submit" class="btn btn-primary">Save for Session</button>
+        </div>
+      </form>
+    </dialog>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>
