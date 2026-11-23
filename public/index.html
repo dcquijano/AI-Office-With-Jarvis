@@ -115,12 +115,41 @@
               <p class="panel-hint">Drag to rotate 3D view · Scroll to zoom · Click any AI to talk 1-on-1</p>
             </div>
             <div class="cam-controls" aria-label="3D Camera Controls">
+              <button id="cam-ceo-focus" type="button" class="chip-btn" title="Zoom inside CEO Executive Office">Enter CEO Office</button>
               <button id="cam-rot-left" type="button" class="chip-btn" title="Rotate 3D Left">Rotate L</button>
               <button id="cam-rot-right" type="button" class="chip-btn" title="Rotate 3D Right">Rotate R</button>
               <button id="cam-zoom-in" type="button" class="chip-btn" title="Zoom In">+</button>
               <button id="cam-zoom-out" type="button" class="chip-btn" title="Zoom Out">-</button>
-              <button id="cam-reset" type="button" class="chip-btn" title="Reset 3D Camera">Reset</button>
+              <button id="cam-reset" type="button" class="chip-btn" title="Reset 3D Camera">Full Campus</button>
               <span id="office-activity-badge" class="tag">Idle</span>
+            </div>
+          </div>
+
+          <div id="task-drag-bar" class="task-drag-bar" aria-label="Drag and drop tasks onto AI specialists">
+            <div class="drag-custom-group">
+              <label class="sr-only" for="drag-task-input">Quick task to drag onto an AI</label>
+              <input
+                id="drag-task-input"
+                class="drag-task-input"
+                type="text"
+                maxlength="300"
+                placeholder="Type a task &amp; drag card onto any 3D AI or dock button..."
+              />
+              <span
+                id="draggable-task-card"
+                class="drag-task-card"
+                draggable="true"
+                title="Drag this task card onto any 3D character or dock specialist"
+              >&#8942;&#8942; Drag Task</span>
+            </div>
+            <div class="drag-presets-group">
+              <span class="agent-actions-label">Drop onto AI:</span>
+              <span class="drag-task-chip" draggable="true" data-task-prompt="Build modular backend API endpoint with input validation and error handling">Build API</span>
+              <span class="drag-task-chip" draggable="true" data-task-prompt="Design clean interactive UI layout with accessible WCAG AA contrast">Design UI</span>
+              <span class="drag-task-chip" draggable="true" data-task-prompt="Audit authentication, SSRF, XSS, and secrets trust boundaries">Security Audit</span>
+              <span class="drag-task-chip" draggable="true" data-task-prompt="Write unit and integration tests covering boundary and error cases">Write QA Tests</span>
+              <span class="drag-task-chip" draggable="true" data-task-prompt="Research architecture options, trade-offs, and recommended benchmarks">Research Plan</span>
+              <span class="drag-task-chip" draggable="true" data-task-prompt="Configure CI checks, health endpoints, and zero-downtime rollback steps">CI/CD Setup</span>
             </div>
           </div>
 
@@ -145,6 +174,9 @@
             <button type="button" role="tab" id="tab-desk" aria-selected="false" aria-controls="panel-desk" class="tab-btn">
               Talk to AI
             </button>
+            <button type="button" role="tab" id="tab-ceo-studio" aria-selected="false" aria-controls="panel-ceo-studio" class="tab-btn">
+              CEO Office UI
+            </button>
             <button type="button" role="tab" id="tab-dag" aria-selected="false" aria-controls="panel-dag" class="tab-btn">
               Task DAG
             </button>
@@ -161,6 +193,10 @@
 
           <div id="panel-desk" role="tabpanel" aria-labelledby="tab-desk" class="tab-panel" hidden>
             <div id="desk-inspector-content"></div>
+          </div>
+
+          <div id="panel-ceo-studio" role="tabpanel" aria-labelledby="tab-ceo-studio" class="tab-panel" hidden>
+            <div id="ceo-studio-content"></div>
           </div>
 
           <div id="panel-dag" role="tabpanel" aria-labelledby="tab-dag" class="tab-panel" hidden>
@@ -186,8 +222,20 @@
           <button id="settings-close-x" type="button" class="btn btn-ghost" aria-label="Close settings">Close</button>
         </div>
         <p class="modal-note">
-          By default, the office runs offline on the built-in Local JARVIS Engine. You can connect a cloud API key <strong>or</strong> a local Qwen model via Ollama / LM Studio (no API key needed for localhost).
+          By default, the office runs offline on the built-in Local JARVIS Engine. Connect your Google Account's <strong>Gemini API key</strong> (free/Pro via Google AI Studio), an OpenAI key, or a local Qwen model. <em>Note: Consumer Gemini Advanced web subscriptions don't unlock API OAuth directly — grab a Gemini API key from Google AI Studio below.</em>
         </p>
+
+        <div class="agent-actions-bar">
+          <span class="agent-actions-label">Google Gemini:</span>
+          <button id="preset-gemini-pro" type="button" class="chip-btn">Gemini 2.5 Pro</button>
+          <button id="preset-gemini-flash" type="button" class="chip-btn">Gemini 2.5 Flash</button>
+          <a
+            href="https://aistudio.google.com/apikey"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="chip-btn"
+          >Get Gemini Key</a>
+        </div>
 
         <div class="agent-actions-bar">
           <span class="agent-actions-label">Local Qwen:</span>

@@ -8,6 +8,9 @@ const state = {
   presets: [],
   tourIndex: -1,
   selectedDeskId: 'jarvis',
+  ceoFocus: false,
+  officeUpgrades: null,
+  draggedTaskPrompt: '',
   currentMission: null,
   activeSource: null,
   agentChats: new Map(),
@@ -41,15 +44,21 @@ const els = {
   dispatchBtn: document.getElementById('dispatch-btn'),
   pipelineSteps: document.getElementById('pipeline-steps'),
   officeActivityBadge: document.getElementById('office-activity-badge'),
+  officeFloor: document.getElementById('office-floor'),
   officeCanvas: document.getElementById('office-canvas'),
   officeDock: document.getElementById('office-dock'),
+  taskDragBar: document.getElementById('task-drag-bar'),
+  dragTaskInput: document.getElementById('drag-task-input'),
+  draggableTaskCard: document.getElementById('draggable-task-card'),
   camRotLeft: document.getElementById('cam-rot-left'),
   camRotRight: document.getElementById('cam-rot-right'),
   camZoomIn: document.getElementById('cam-zoom-in'),
   camZoomOut: document.getElementById('cam-zoom-out'),
   camReset: document.getElementById('cam-reset'),
+  camCeoFocus: document.getElementById('cam-ceo-focus'),
   briefingContent: document.getElementById('briefing-content'),
   deskInspectorContent: document.getElementById('desk-inspector-content'),
+  ceoStudioContent: document.getElementById('ceo-studio-content'),
   dagContent: document.getElementById('dag-content'),
   commsLogList: document.getElementById('comms-log-list'),
   settingsBtn: document.getElementById('settings-btn'),
@@ -60,6 +69,8 @@ const els = {
   settingApiKey: document.getElementById('setting-api-key'),
   settingBaseUrl: document.getElementById('setting-base-url'),
   settingModel: document.getElementById('setting-model'),
+  presetGeminiPro: document.getElementById('preset-gemini-pro'),
+  presetGeminiFlash: document.getElementById('preset-gemini-flash'),
   presetOllamaQwen: document.getElementById('preset-ollama-qwen'),
   presetLmStudioQwen: document.getElementById('preset-lmstudio-qwen'),
   detectLocalLlm: document.getElementById('detect-local-llm'),
@@ -94,7 +105,10 @@ function switchTab(tabId) {
 }
 
 function updateModePill(serverLlmConfigured) {
-  if (state.sessionLlm.baseUrl && /^http:\/\/(localhost|127\.0\.0\.1)/i.test(state.sessionLlm.baseUrl)) {
+  if (/generativelanguage\.googleapis\.com/i.test(state.sessionLlm.baseUrl || '')) {
+    els.modePill.textContent = `Gemini (${state.sessionLlm.model || 'gemini-2.5-flash'})`;
+    els.modePill.className = 'pill pill-live';
+  } else if (state.sessionLlm.baseUrl && /^http:\/\/(localhost|127\.0\.0\.1)/i.test(state.sessionLlm.baseUrl)) {
     els.modePill.textContent = `Local LLM (${state.sessionLlm.model || 'Qwen'})`;
     els.modePill.className = 'pill pill-live';
   } else if (state.sessionLlm.apiKey || serverLlmConfigured) {
@@ -210,6 +224,23 @@ function renderOfficeDock() {
     btn.appendChild(head);
     btn.appendChild(createEl('span', 'dock-btn-status', item.status));
     btn.addEventListener('click', () => selectDesk(item.id, true));
+    btn.addEventListener('dragover', (ev) => {
+      ev.preventDefault();
+      if (ev.dataTransfer) ev.dataTransfer.dropEffect = 'copy';
+      btn.classList.add('drag-over');
+    });
+    btn.addEventListener('dragleave', () => {
+      btn.classList.remove('drag-over');
+    });
+    btn.addEventListener('drop', (ev) => {
+      ev.preventDefault();
+      btn.classList.remove('drag-over');
+      const taskText =
+        state.draggedTaskPrompt || ev.dataTransfer?.getData('text/plain')?.trim() || '';
+      if (taskText) {
+        dispatchDroppedTask(item.id, taskText);
+      }
+    });
     els.officeDock.appendChild(btn);
   }
 }
@@ -222,10 +253,119 @@ function renderOfficeFloor() {
       controller: state.controller,
       mission: state.currentMission,
       selectedDeskId: state.selectedDeskId,
-      tourTarget
+      tourTarget,
+      upgrades: state.officeUpgrades
     });
   }
   renderOfficeDock();
+}
+
+function applyUiTheme(themeId) {
+  document.documentElement.dataset.theme = themeId || 'stark-cyan';
+}
+
+async function saveOfficeUpgrade(patch) {
+  try {
+    const res = await fetch('/api/office/upgrades', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(patch)
+    });
+    if (!res.ok) return;
+    state.officeUpgrades = await res.json();
+    applyUiTheme(state.officeUpgrades.uiTheme);
+    renderOfficeFloor();
+    renderCeoStudio();
+  } catch {
+    // Ignore transient UI upgrade save failure
+  }
+}
+
+function renderCeoStudio() {
+  if (!els.ceoStudioContent) return;
+  clearElement(els.ceoStudioContent);
+  const u = state.officeUpgrades;
+  if (!u) {
+    els.ceoStudioContent.appendChild(createEl('div', 'empty-state', 'Loading CEO Office Studio...'));
+    return;
+  }
+
+  const wrap = createEl('div', 'studio-grid');
+
+  const headerCard = createEl('div', 'studio-module-card');
+  headerCard.appendChild(
+    createEl(
+      'div',
+      'deliverable-meta',
+      `CEO Executive Suite · Level ${u.officeLevel} / ${u.maxLevel}`
+    )
+  );
+  headerCard.appendChild(
+    createEl(
+      'div',
+      'briefing-summary',
+      'Upgrade the 3D interior inside the CEO Office (next to J.A.R.V.I.S. AI Brain) and customize the live HUD UI theme.'
+    )
+  );
+  const viewRow = createEl('div', 'studio-tier-row');
+  const enterBtn = createEl(
+    'button',
+    `chip-btn ${state.ceoFocus ? 'active-chip' : ''}`,
+    state.ceoFocus ? 'Exit CEO Office (Full Campus)' : 'Enter CEO Office (3D Zoom)'
+  );
+  enterBtn.type = 'button';
+  enterBtn.addEventListener('click', () => toggleCeoOfficeFocus());
+  viewRow.appendChild(enterBtn);
+  headerCard.appendChild(viewRow);
+  wrap.appendChild(headerCard);
+
+  // UI Theme Switcher
+  const themeCard = createEl('div', 'studio-module-card');
+  themeCard.appendChild(createEl('div', 'deliverable-meta', 'UI Design Theme'));
+  const themeRow = createEl('div', 'studio-tier-row');
+  for (const theme of u.themes || []) {
+    const btn = createEl(
+      'button',
+      `chip-btn ${u.uiTheme === theme.id ? 'active-chip' : ''}`,
+      theme.name
+    );
+    btn.type = 'button';
+    btn.addEventListener('click', () => saveOfficeUpgrade({ uiTheme: theme.id }));
+    themeRow.appendChild(btn);
+  }
+  themeCard.appendChild(themeRow);
+  wrap.appendChild(themeCard);
+
+  // Upgradable 3D Modules inside CEO Office
+  for (const modKey of ['deskTier', 'brainLinkTier', 'decorTier']) {
+    const mod = u.modules?.[modKey];
+    if (!mod) continue;
+    const currentTier = u[modKey];
+    const activeTierObj = mod.tiers.find((t) => t.tier === currentTier) || mod.tiers[0];
+
+    const card = createEl('div', 'studio-module-card');
+    card.appendChild(
+      createEl('div', 'deliverable-meta', `${mod.label} · Tier ${currentTier}/3`)
+    );
+    card.appendChild(createEl('strong', '', activeTierObj.name));
+    card.appendChild(createEl('div', 'briefing-summary', activeTierObj.summary));
+
+    const tierRow = createEl('div', 'studio-tier-row');
+    for (const t of mod.tiers) {
+      const btn = createEl(
+        'button',
+        `chip-btn ${currentTier === t.tier ? 'active-chip' : ''}`,
+        `Tier ${t.tier}: ${t.name.split(' ')[0]}`
+      );
+      btn.type = 'button';
+      btn.addEventListener('click', () => saveOfficeUpgrade({ [modKey]: t.tier }));
+      tierRow.appendChild(btn);
+    }
+    card.appendChild(tierRow);
+    wrap.appendChild(card);
+  }
+
+  els.ceoStudioContent.appendChild(wrap);
 }
 
 async function sendDirectChat(agentId, text) {
@@ -690,10 +830,25 @@ function renderAll() {
   renderPipeline();
   renderOfficeFloor();
   renderDeskInspector();
+  renderCeoStudio();
   renderBriefing();
   renderDag();
   renderLogs();
   updateGuideSpeechFromMission();
+}
+
+function toggleCeoOfficeFocus(forceState = null) {
+  state.ceoFocus = forceState !== null ? forceState : !state.ceoFocus;
+  officeScene?.focusCeoOffice(state.ceoFocus);
+  if (els.camCeoFocus) {
+    els.camCeoFocus.classList.toggle('active-chip', state.ceoFocus);
+    els.camCeoFocus.textContent = state.ceoFocus ? 'Exit CEO Office' : 'Enter CEO Office';
+  }
+  if (state.ceoFocus) {
+    selectDesk('ceo', false);
+    switchTab('tab-ceo-studio');
+  }
+  renderCeoStudio();
 }
 
 function updateTourUi() {
@@ -760,6 +915,138 @@ function subscribeToMission(streamUrl, missionId) {
   });
 }
 
+async function dispatchDroppedTask(targetId, rawPrompt) {
+  const prompt = typeof rawPrompt === 'string' ? rawPrompt.trim() : '';
+  if (!prompt) {
+    els.missionError.textContent = 'Type a task or drag one of the preset task chips onto an AI.';
+    els.missionError.hidden = false;
+    els.dragTaskInput?.focus();
+    return;
+  }
+
+  els.missionError.hidden = true;
+  els.missionPrompt.value = prompt;
+  els.dispatchBtn.disabled = true;
+
+  const isTeamDrop = targetId === 'jarvis';
+  if (!isTeamDrop && officeScene) {
+    officeScene.moveAgentTo(targetId, 'computer');
+    officeScene.showAgentSpeech(targetId, `Task: ${prompt.slice(0, 20)}`, 5);
+  }
+  selectDesk(targetId, false);
+
+  try {
+    const res = await fetch('/api/missions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        prompt,
+        agents: isTeamDrop ? undefined : [targetId],
+        directTask: !isTeamDrop,
+        apiKey: state.sessionLlm.apiKey || undefined,
+        baseUrl: state.sessionLlm.baseUrl || undefined,
+        model: state.sessionLlm.model || undefined
+      })
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      els.missionError.textContent = data.message || 'Failed to assign dropped task.';
+      els.missionError.hidden = false;
+      els.dispatchBtn.disabled = false;
+      return;
+    }
+
+    switchTab('tab-briefing');
+    subscribeToMission(data.streamUrl, data.missionId);
+  } catch {
+    els.missionError.textContent = 'Network error while assigning dropped task.';
+    els.missionError.hidden = false;
+    els.dispatchBtn.disabled = false;
+  }
+}
+
+function setupDragAndDropTasks() {
+  if (els.draggableTaskCard) {
+    els.draggableTaskCard.addEventListener('dragstart', (ev) => {
+      const prompt =
+        els.dragTaskInput?.value.trim() ||
+        els.missionPrompt.value.trim() ||
+        'Design and build a focused deliverable for the CEO';
+      state.draggedTaskPrompt = prompt;
+      if (ev.dataTransfer) {
+        ev.dataTransfer.effectAllowed = 'copy';
+        ev.dataTransfer.setData('text/plain', prompt);
+      }
+      els.draggableTaskCard.classList.add('dragging');
+    });
+
+    els.draggableTaskCard.addEventListener('dragend', () => {
+      state.draggedTaskPrompt = '';
+      els.draggableTaskCard.classList.remove('dragging');
+      els.officeFloor?.classList.remove('drag-over');
+      officeScene?.clearDragHover();
+    });
+  }
+
+  for (const chip of document.querySelectorAll('.drag-task-chip')) {
+    chip.addEventListener('dragstart', (ev) => {
+      const prompt = chip.getAttribute('data-task-prompt') || chip.textContent || '';
+      state.draggedTaskPrompt = prompt;
+      if (ev.dataTransfer) {
+        ev.dataTransfer.effectAllowed = 'copy';
+        ev.dataTransfer.setData('text/plain', prompt);
+      }
+      chip.classList.add('dragging');
+    });
+
+    chip.addEventListener('dragend', () => {
+      state.draggedTaskPrompt = '';
+      chip.classList.remove('dragging');
+      els.officeFloor?.classList.remove('drag-over');
+      officeScene?.clearDragHover();
+    });
+
+    chip.addEventListener('click', () => {
+      const prompt = chip.getAttribute('data-task-prompt') || '';
+      if (els.dragTaskInput) els.dragTaskInput.value = prompt;
+      els.missionPrompt.value = prompt;
+    });
+  }
+
+  if (els.officeCanvas) {
+    els.officeCanvas.addEventListener('dragover', (ev) => {
+      ev.preventDefault();
+      if (ev.dataTransfer) ev.dataTransfer.dropEffect = 'copy';
+      els.officeFloor?.classList.add('drag-over');
+      if (officeScene) {
+        const pt = officeScene.toLogicalPoint(ev);
+        officeScene.setDragHoverLogical(pt.x, pt.y);
+      }
+    });
+
+    els.officeCanvas.addEventListener('dragleave', () => {
+      els.officeFloor?.classList.remove('drag-over');
+      officeScene?.clearDragHover();
+    });
+
+    els.officeCanvas.addEventListener('drop', (ev) => {
+      ev.preventDefault();
+      els.officeFloor?.classList.remove('drag-over');
+      const targetId = officeScene
+        ? officeScene.getDropTargetAt(
+            officeScene.toLogicalPoint(ev).x,
+            officeScene.toLogicalPoint(ev).y
+          ) || 'jarvis'
+        : 'jarvis';
+      officeScene?.clearDragHover();
+      const taskText =
+        state.draggedTaskPrompt || ev.dataTransfer?.getData('text/plain')?.trim() || '';
+      dispatchDroppedTask(targetId, taskText);
+    });
+  }
+}
+
 async function init() {
   officeScene = new Office3DScene(els.officeCanvas, {
     onSelectAgent: (id) => selectDesk(id, true),
@@ -779,15 +1066,20 @@ async function init() {
     }
   });
 
-  const [healthRes, teamRes, guideRes] = await Promise.all([
+  const [healthRes, teamRes, guideRes, upgradesRes] = await Promise.all([
     fetch('/api/health'),
     fetch('/api/team'),
-    fetch('/api/guide')
+    fetch('/api/guide'),
+    fetch('/api/office/upgrades')
   ]);
 
   const health = await healthRes.json();
   const teamData = await teamRes.json();
   const guideData = await guideRes.json();
+  state.officeUpgrades = upgradesRes.ok ? await upgradesRes.json() : null;
+  if (state.officeUpgrades?.uiTheme) {
+    applyUiTheme(state.officeUpgrades.uiTheme);
+  }
 
   state.controller = teamData.controller;
   state.team = teamData.team;
@@ -800,14 +1092,22 @@ async function init() {
   renderPresets();
   renderAgentFilters();
   renderAll();
+  setupDragAndDropTasks();
 }
 
 // 3D Camera Controls
+els.camCeoFocus.addEventListener('click', () => toggleCeoOfficeFocus());
 els.camRotLeft.addEventListener('click', () => officeScene?.rotateCamera(-Math.PI / 6));
 els.camRotRight.addEventListener('click', () => officeScene?.rotateCamera(Math.PI / 6));
 els.camZoomIn.addEventListener('click', () => officeScene?.adjustZoom(0.14));
 els.camZoomOut.addEventListener('click', () => officeScene?.adjustZoom(-0.14));
-els.camReset.addEventListener('click', () => officeScene?.resetCamera());
+els.camReset.addEventListener('click', () => {
+  state.ceoFocus = false;
+  els.camCeoFocus.classList.remove('active-chip');
+  els.camCeoFocus.textContent = 'Enter CEO Office';
+  officeScene?.resetCamera();
+  renderCeoStudio();
+});
 
 // Tabs
 for (const tabBtn of document.querySelectorAll('[role="tab"]')) {
@@ -946,6 +1246,18 @@ els.settingsForm.addEventListener('submit', (ev) => {
   };
   updateModePill(Boolean(state.sessionLlm.apiKey || state.sessionLlm.baseUrl));
   els.settingsDialog.close();
+});
+
+els.presetGeminiPro?.addEventListener('click', () => {
+  els.settingBaseUrl.value = 'https://generativelanguage.googleapis.com/v1beta/openai';
+  els.settingModel.value = 'gemini-2.5-pro';
+  els.settingApiKey.focus();
+});
+
+els.presetGeminiFlash?.addEventListener('click', () => {
+  els.settingBaseUrl.value = 'https://generativelanguage.googleapis.com/v1beta/openai';
+  els.settingModel.value = 'gemini-2.5-flash';
+  els.settingApiKey.focus();
 });
 
 els.presetOllamaQwen.addEventListener('click', () => {

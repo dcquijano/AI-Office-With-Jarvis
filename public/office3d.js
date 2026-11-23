@@ -236,7 +236,17 @@ export class Office3DScene {
     this.targetYaw = this.yaw;
     this.zoom = 0.92;
     this.targetZoom = 0.92;
+    this.focusOffsetX = 0.2;
+    this.targetFocusOffsetX = 0.2;
+    this.focusOffsetY = 0;
+    this.targetFocusOffsetY = 0;
     this.tilt = 0.52;
+    this.upgrades = {
+      deskTier: 1,
+      brainLinkTier: 1,
+      decorTier: 1,
+      uiTheme: 'stark-cyan'
+    };
     this.isDragging = false;
     this.dragMoved = false;
     this.lastPointerX = 0;
@@ -306,12 +316,37 @@ export class Office3DScene {
   }
 
   adjustZoom(delta) {
-    this.targetZoom = clamp(this.targetZoom + delta, 0.65, 1.55);
+    this.targetZoom = clamp(this.targetZoom + delta, 0.65, 1.9);
+  }
+
+  focusCeoOffice(enabled) {
+    if (enabled) {
+      this.targetFocusOffsetX = -1.9;
+      this.targetFocusOffsetY = 0;
+      this.targetZoom = 1.65;
+      this.targetYaw = Math.PI * 0.22;
+    } else {
+      this.resetCamera();
+    }
+  }
+
+  focusRoom(wx, wy, zoom = 1.55) {
+    this.targetFocusOffsetX = wx;
+    this.targetFocusOffsetY = wy;
+    this.targetZoom = zoom;
   }
 
   resetCamera() {
     this.targetYaw = Math.PI * 0.24;
     this.targetZoom = 0.92;
+    this.targetFocusOffsetX = 0.2;
+    this.targetFocusOffsetY = 0;
+  }
+
+  getRoomTier(roomId) {
+    const rooms = this.upgrades?.rooms;
+    if (!rooms || rooms[roomId] === undefined) return 1;
+    return rooms[roomId];
   }
 
   toLogicalPoint(ev) {
@@ -333,14 +368,13 @@ export class Office3DScene {
   }
 
   project(wx, wy, wz = 0) {
-    // Shift world center slightly east (+2.0) so the entire Office + Dual Sports Columns center nicely
-    const cx = wx - 2.0;
-    const cy = wy;
+    const cx = wx - this.focusOffsetX;
+    const cy = wy - this.focusOffsetY;
     const cos = Math.cos(this.yaw);
     const sin = Math.sin(this.yaw);
     const rx = cx * cos - cy * sin;
     const ry = cx * sin + cy * cos;
-    const scale = 20.5 * this.zoom;
+    const scale = 17.6 * this.zoom;
     return {
       sx: LOGICAL_WIDTH * 0.5 + rx * scale,
       sy: LOGICAL_HEIGHT * 0.54 + ry * scale * this.tilt - wz * scale * 0.95,
@@ -443,12 +477,15 @@ export class Office3DScene {
     });
   }
 
-  syncState({ team, controller, mission, selectedDeskId, tourTarget }) {
+  syncState({ team, controller, mission, selectedDeskId, tourTarget, upgrades }) {
     this.team = team || [];
     this.controller = controller || null;
     this.mission = mission || null;
     this.selectedDeskId = selectedDeskId || 'jarvis';
     this.tourTarget = tourTarget || null;
+    if (upgrades) {
+      this.upgrades = { ...this.upgrades, ...upgrades };
+    }
 
     this.initActors(this.team);
 
@@ -571,6 +608,8 @@ export class Office3DScene {
   update(dt) {
     this.yaw += (this.targetYaw - this.yaw) * Math.min(1, dt * 10);
     this.zoom += (this.targetZoom - this.zoom) * Math.min(1, dt * 10);
+    this.focusOffsetX += (this.targetFocusOffsetX - this.focusOffsetX) * Math.min(1, dt * 10);
+    this.focusOffsetY += (this.targetFocusOffsetY - this.focusOffsetY) * Math.min(1, dt * 10);
 
     for (let i = this.packets.length - 1; i >= 0; i -= 1) {
       this.packets[i].progress += dt * 1.1;
@@ -641,10 +680,41 @@ export class Office3DScene {
             [...this.actors.values()].filter((a) => a.id !== actor.id).map((a) => a.slotKey)
           );
           const st = STATIONS[actor.id];
-          const allOptions = [
-            { key: `computer:${actor.id}`, x: st.chairX, y: st.chairY, activity: 'at-computer', msg: 'At workstation' },
-            ...REC_SLOTS.filter((slot) => !occupied.has(slot.key))
-          ];
+          const groupToRoom = {
+            pickleball: 'pickleballCourt',
+            swim: 'swimmingPool',
+            gym: 'gymRoom',
+            basketball: 'basketballCourt',
+            soccer: 'soccerPitch',
+            pingpong: 'barLounge',
+            coffee: 'barLounge',
+            bar: 'barLounge',
+            dance: 'barLounge'
+          };
+          const availableSlots = REC_SLOTS.filter((slot) => {
+            if (occupied.has(slot.key)) return false;
+            const roomKey = groupToRoom[slot.group];
+            return !roomKey || this.getRoomTier(roomKey) >= 1;
+          });
+          const allOptions = [];
+          if (this.getRoomTier(actor.id) >= 1) {
+            allOptions.push({
+              key: `computer:${actor.id}`,
+              x: st.chairX,
+              y: st.chairY,
+              activity: 'at-computer',
+              msg: 'At workstation'
+            });
+          } else {
+            allOptions.push({
+              key: `huddle:${actor.id}`,
+              x: st.huddleX,
+              y: st.huddleY,
+              activity: 'briefing',
+              msg: 'Waiting for office!'
+            });
+          }
+          allOptions.push(...availableSlots);
           const pick = allOptions[Math.floor(Math.random() * allOptions.length)];
           actor.slotKey = pick.key;
           this.setActorGoal(actor, pick.x, pick.y, pick.activity, pick.msg);
@@ -781,28 +851,57 @@ export class Office3DScene {
     ctx.fillStyle = bg;
     ctx.fillRect(0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT);
 
-    // 1. Campus Platform (Office Wing + 2-Column Sports & Aquatics Wing)
-    this.drawBox3D(ctx, 2.2, 0, -0.45, 26.8, 19.6, 0.45, '#1b2944');
-    this.drawFloorQuad(ctx, -11.2, -9.8, 15.6, 9.8, '#1d2b46', 'rgba(56, 189, 248, 0.35)');
+    // 1. Expanded 3-Wing Campus Platform (West Server/Boardroom/Lobby + Center Role Suites + East Sports/Bar)
+    this.drawBox3D(ctx, 0.3, 0, -0.45, 30.8, 19.6, 0.45, '#1b2944');
+    this.drawFloorQuad(ctx, -15.1, -9.8, 15.7, 9.8, '#1d2b46', 'rgba(56, 189, 248, 0.35)');
 
-    // Office Atrium Luxury Flooring & Luminous Runway Lines
-    this.drawFloorQuad(ctx, -10.8, -9.4, 4.1, 9.4, '#18243d', 'rgba(56, 189, 248, 0.35)');
-    for (let gx = -10; gx <= 4; gx += 2) {
+    // Office & Infrastructure Atrium Flooring & Luminous Runway Lines
+    this.drawFloorQuad(ctx, -14.7, -9.4, 4.1, 9.4, '#18243d', 'rgba(56, 189, 248, 0.35)');
+    for (let gx = -14; gx <= 4; gx += 2) {
       this.drawLine3D(ctx, gx, -9.4, 0.01, gx, 9.4, 0.01, 'rgba(148, 163, 184, 0.09)', 1);
     }
     for (let gy = -9; gy <= 9; gy += 2) {
-      this.drawLine3D(ctx, -10.8, gy, 0.01, 4.1, gy, 0.01, 'rgba(148, 163, 184, 0.09)', 1);
+      this.drawLine3D(ctx, -14.7, gy, 0.01, 4.1, gy, 0.01, 'rgba(148, 163, 184, 0.09)', 1);
     }
 
-    // Center Walkway Spine with glowing LED edge strips
+    // West & East Walkway Spines
+    this.drawFloorQuad(ctx, -10.5, -9.4, -10.1, 9.4, 'rgba(56, 189, 248, 0.14)');
     this.drawFloorQuad(ctx, 4.0, -9.4, 4.9, 9.4, 'rgba(56, 189, 248, 0.16)');
     this.drawLine3D(ctx, 4.05, -9.4, 0.02, 4.05, 9.4, 0.02, 'rgba(56, 189, 248, 0.55)', 1.6);
     this.drawLine3D(ctx, 4.85, -9.4, 0.02, 4.85, 9.4, 0.02, 'rgba(52, 211, 153, 0.45)', 1.6);
 
-    // 2. 8 Bespoke Specialist Office Suites with warm ambient accents
+    // 1b. West Infrastructure & Meeting Rooms (Server Vault, Executive Boardroom, Reception Lobby)
+    const serverTier = this.getRoomTier('serverRoom');
+    const confTier = this.getRoomTier('conferenceRoom');
+    const lobbyTier = this.getRoomTier('lobbyRoom');
+
+    if (serverTier === 0) {
+      this.drawBlueprintPlot(ctx, -14.4, -8.8, -10.7, -3.2, 'BUILD: SERVER ROOM', 'serverRoom');
+    } else {
+      this.drawFloorQuad(ctx, -14.4, -8.8, -10.7, -3.2, '#0e1e38', serverTier >= 2 ? '#38bdf8' : 'rgba(56, 189, 248, 0.55)');
+    }
+
+    if (confTier === 0) {
+      this.drawBlueprintPlot(ctx, -14.4, -2.4, -10.7, 2.4, 'BUILD: BOARDROOM', 'conferenceRoom');
+    } else {
+      this.drawFloorQuad(ctx, -14.4, -2.4, -10.7, 2.4, '#212e4a', confTier >= 2 ? '#a78bfa' : 'rgba(167, 139, 250, 0.5)');
+    }
+
+    if (lobbyTier === 0) {
+      this.drawBlueprintPlot(ctx, -14.4, 3.2, -10.7, 8.8, 'BUILD: LOBBY', 'lobbyRoom');
+    } else {
+      this.drawFloorQuad(ctx, -14.4, 3.2, -10.7, 8.8, '#28233d', lobbyTier >= 2 ? '#34d399' : 'rgba(52, 211, 153, 0.5)');
+    }
+
+    // 2. Role Specialist Office Suites (Tier 0 Blueprint Plot vs Tier 1-3 Built Room)
     for (const agent of this.team) {
       const st = STATIONS[agent.id];
       if (!st) continue;
+      const tier = this.getRoomTier(agent.id);
+      if (tier === 0) {
+        this.drawBlueprintPlot(ctx, st.x - 1.8, st.y - 1.8, st.x + 1.8, st.y + 1.8, `BUILD: ${agent.name.toUpperCase()}`, agent.id);
+        continue;
+      }
       const isSelected = this.selectedDeskId === agent.id || this.tourTarget === agent.id;
       this.drawFloorQuad(
         ctx,
@@ -810,55 +909,76 @@ export class Office3DScene {
         st.y - 1.85,
         st.x + 1.85,
         st.y + 1.85,
-        '#21314f',
-        isSelected ? agent.accent : 'rgba(148, 163, 184, 0.42)'
+        tier >= 3 ? '#293c61' : '#21314f',
+        isSelected || tier >= 2 ? agent.accent : 'rgba(148, 163, 184, 0.42)'
       );
       this.drawFloorQuad(ctx, st.x - 1.35, st.y - 1.15, st.x + 1.35, st.y + 1.15, st.rugColor, 'rgba(255,255,255,0.12)');
     }
 
-    // 3. East Column 1: Pickleball, Gym, Basketball, Coffee Cafe
-    // Pickleball Court (y: -9.1 .. -4.2)
-    this.drawFloorQuad(ctx, 5.1, -9.1, 9.7, -4.2, '#16a34a', '#bbf7d0');
-    this.drawFloorQuad(ctx, 5.4, -8.5, 9.4, -4.8, '#2563eb', '#ffffff');
-    this.drawLine3D(ctx, 6.8, -8.5, 0.02, 6.8, -4.8, 0.02, '#ffffff', 1.2);
-    this.drawLine3D(ctx, 8.0, -8.5, 0.02, 8.0, -4.8, 0.02, '#ffffff', 1.2);
+    // 3. East Sports, Aquatics & Social Wing (individually buildable!)
+    const pbTier = this.getRoomTier('pickleballCourt');
+    const gymTier = this.getRoomTier('gymRoom');
+    const bballTier = this.getRoomTier('basketballCourt');
+    const barTier = this.getRoomTier('barLounge');
+    const swimTier = this.getRoomTier('swimmingPool');
+    const soccerTier = this.getRoomTier('soccerPitch');
 
-    // Fitness Gym (y: -3.5 .. +0.3)
-    this.drawFloorQuad(ctx, 5.1, -3.5, 9.7, 0.3, '#273244', 'rgba(250, 204, 21, 0.55)');
-    this.drawFloorQuad(ctx, 5.5, -0.8, 7.2, 0.0, '#9333ea'); // yoga mat
+    if (pbTier === 0) {
+      this.drawBlueprintPlot(ctx, 5.1, -9.1, 9.7, -4.2, 'BUILD: PICKLEBALL', 'pickleballCourt');
+    } else {
+      this.drawFloorQuad(ctx, 5.1, -9.1, 9.7, -4.2, '#16a34a', '#bbf7d0');
+      this.drawFloorQuad(ctx, 5.4, -8.5, 9.4, -4.8, '#2563eb', '#ffffff');
+      this.drawLine3D(ctx, 6.8, -8.5, 0.02, 6.8, -4.8, 0.02, '#ffffff', 1.2);
+      this.drawLine3D(ctx, 8.0, -8.5, 0.02, 8.0, -4.8, 0.02, '#ffffff', 1.2);
+    }
 
-    // Basketball Court (y: +1.0 .. +5.5)
-    this.drawFloorQuad(ctx, 5.1, 1.0, 9.7, 5.5, '#c26d27', '#fde68a');
-    this.drawFloorQuad(ctx, 8.0, 2.3, 9.6, 4.2, '#9a3412', '#ffffff'); // painted key
-    this.drawLine3D(ctx, 7.2, 1.0, 0.02, 7.2, 5.5, 0.02, '#ffffff', 1.2);
+    if (gymTier === 0) {
+      this.drawBlueprintPlot(ctx, 5.1, -3.5, 9.7, 0.3, 'BUILD: GYM', 'gymRoom');
+    } else {
+      this.drawFloorQuad(ctx, 5.1, -3.5, 9.7, 0.3, '#273244', 'rgba(250, 204, 21, 0.55)');
+      this.drawFloorQuad(ctx, 5.5, -0.8, 7.2, 0.0, '#9333ea');
+    }
 
-    // Coffee & Lounge Cafe (y: +6.2 .. +9.2)
-    this.drawFloorQuad(ctx, 5.1, 6.2, 9.7, 9.2, '#3b2b28', 'rgba(251, 146, 60, 0.55)');
+    if (bballTier === 0) {
+      this.drawBlueprintPlot(ctx, 5.1, 1.0, 9.7, 5.5, 'BUILD: BASKETBALL', 'basketballCourt');
+    } else {
+      this.drawFloorQuad(ctx, 5.1, 1.0, 9.7, 5.5, '#c26d27', '#fde68a');
+      this.drawFloorQuad(ctx, 8.0, 2.3, 9.6, 4.2, '#9a3412', '#ffffff');
+      this.drawLine3D(ctx, 7.2, 1.0, 0.02, 7.2, 5.5, 0.02, '#ffffff', 1.2);
+    }
 
-    // 4. East Column 2: Swimming Pool, Soccer/Futsal Pitch, Ping-Pong & Garden
-    // Olympic Swimming Pool (x: 10.3..14.9, y: -9.1..-2.5)
-    this.drawFloorQuad(ctx, 10.3, -9.1, 14.9, -2.5, '#cbd5e1', '#e2e8f0'); // tiled deck
-    const waterColor = !this.reducedMotion && Math.sin(this.clockSec * 2) > 0 ? '#0284c7' : '#0369a1';
-    this.drawFloorQuad(ctx, 10.8, -8.6, 14.4, -3.0, waterColor, '#7dd3fc'); // pool water
-    // Pool Lane Dividers (3 lanes)
-    this.drawLine3D(ctx, 12.0, -8.6, 0.05, 12.0, -3.0, 0.05, '#facc15', 1.5);
-    this.drawLine3D(ctx, 13.2, -8.6, 0.05, 13.2, -3.0, 0.05, '#f87171', 1.5);
+    if (swimTier === 0) {
+      this.drawBlueprintPlot(ctx, 10.3, -9.1, 14.9, -2.5, 'BUILD: SWIM POOL', 'swimmingPool');
+    } else {
+      this.drawFloorQuad(ctx, 10.3, -9.1, 14.9, -2.5, '#cbd5e1', '#e2e8f0');
+      const waterColor = !this.reducedMotion && Math.sin(this.clockSec * 2) > 0 ? '#0284c7' : '#0369a1';
+      this.drawFloorQuad(ctx, 10.8, -8.6, 14.4, -3.0, waterColor, '#7dd3fc');
+      this.drawLine3D(ctx, 12.0, -8.6, 0.05, 12.0, -3.0, 0.05, '#facc15', 1.5);
+      this.drawLine3D(ctx, 13.2, -8.6, 0.05, 13.2, -3.0, 0.05, '#f87171', 1.5);
+    }
 
-    // Futsal / Soccer Mini-Pitch (x: 10.3..14.9, y: -1.8..+3.2)
-    this.drawFloorQuad(ctx, 10.3, -1.8, 14.9, 3.2, '#15803d', '#86efac');
-    this.drawFloorQuad(ctx, 11.4, -1.8, 12.6, 3.2, '#166534'); // turf stripe
-    this.drawFloorQuad(ctx, 13.7, -1.8, 14.9, 3.2, '#166534');
-    this.drawLine3D(ctx, 12.6, -1.8, 0.02, 12.6, 3.2, 0.02, '#ffffff', 1.2);
-    this.drawFloorQuad(ctx, 13.9, -0.4, 14.9, 1.8, 'rgba(255,255,255,0.06)', '#ffffff');
+    if (soccerTier === 0) {
+      this.drawBlueprintPlot(ctx, 10.3, -1.8, 14.9, 3.2, 'BUILD: SOCCER', 'soccerPitch');
+    } else {
+      this.drawFloorQuad(ctx, 10.3, -1.8, 14.9, 3.2, '#15803d', '#86efac');
+      this.drawFloorQuad(ctx, 11.4, -1.8, 12.6, 3.2, '#166534');
+      this.drawFloorQuad(ctx, 13.7, -1.8, 14.9, 3.2, '#166534');
+      this.drawLine3D(ctx, 12.6, -1.8, 0.02, 12.6, 3.2, 0.02, '#ffffff', 1.2);
+      this.drawFloorQuad(ctx, 13.9, -0.4, 14.9, 1.8, 'rgba(255,255,255,0.06)', '#ffffff');
+    }
 
-    // Table Tennis (Ping-Pong) & Garden (x: 10.3..14.9, y: +3.9..+6.1)
-    this.drawFloorQuad(ctx, 10.3, 3.9, 14.9, 6.1, '#143f32', 'rgba(52, 211, 153, 0.55)');
-
-    // Drinks Bar & Neon LED Dance Floor (x: 10.3..14.9, y: +6.4..+9.3)
-    this.drawFloorQuad(ctx, 10.3, 6.4, 14.9, 9.3, '#1a1033', 'rgba(232, 121, 249, 0.6)');
-    this.drawDanceFloorTiles(ctx);
+    if (barTier === 0) {
+      this.drawBlueprintPlot(ctx, 5.1, 6.2, 9.7, 9.2, 'BUILD: COFFEE CAFE', 'barLounge');
+      this.drawBlueprintPlot(ctx, 10.3, 3.9, 14.9, 9.3, 'BUILD: BAR & DANCE', 'barLounge');
+    } else {
+      this.drawFloorQuad(ctx, 5.1, 6.2, 9.7, 9.2, '#3b2b28', 'rgba(251, 146, 60, 0.55)');
+      this.drawFloorQuad(ctx, 10.3, 3.9, 14.9, 6.1, '#143f32', 'rgba(52, 211, 153, 0.55)');
+      this.drawFloorQuad(ctx, 10.3, 6.4, 14.9, 9.3, '#1a1033', 'rgba(232, 121, 249, 0.6)');
+      this.drawDanceFloorTiles(ctx);
+    }
 
     // Glowing golden-cyan neural bridge connecting J.A.R.V.I.S. AI Brain directly to CEO Suite!
+    const linkTier = this.upgrades.brainLinkTier || 1;
     this.drawLine3D(
       ctx,
       STATIONS.jarvis.x,
@@ -868,8 +988,21 @@ export class Office3DScene {
       STATIONS.ceo.y,
       0.08,
       '#fbbf24',
-      2.6
+      linkTier >= 2 ? 3.4 : 2.4
     );
+    if (linkTier >= 2) {
+      this.drawLine3D(
+        ctx,
+        STATIONS.jarvis.x,
+        STATIONS.jarvis.y - 0.35,
+        0.16,
+        STATIONS.ceo.x,
+        STATIONS.ceo.y - 0.35,
+        0.16,
+        '#38bdf8',
+        2.0
+      );
+    }
 
     // 5. Data Conduits from JARVIS Brain to all specialist desks
     for (const agent of this.team) {
@@ -902,7 +1035,7 @@ export class Office3DScene {
 
     for (const agent of this.team) {
       const st = STATIONS[agent.id];
-      if (!st) continue;
+      if (!st || this.getRoomTier(agent.id) === 0) continue;
       const isWorking = (this.mission?.tasks ?? []).some(
         (t) => t.agentId === agent.id && t.status === 'running'
       );
@@ -913,19 +1046,28 @@ export class Office3DScene {
       pushItem(st.x + 1.25, st.y - 1.15, () => this.drawRoomProp3D(ctx, agent.id, st));
     }
 
-    // Sports Equipment & Animated Balls
-    pushItem(7.4, -6.65, () => this.drawPickleballNetAndBall3D(ctx));
-    pushItem(5.8, -2.5, () => this.drawTreadmill3D(ctx, 5.8, -2.5));
-    pushItem(7.2, -2.5, () => this.drawTreadmill3D(ctx, 7.2, -2.5));
-    pushItem(8.9, -2.1, () => this.drawWeightsStation3D(ctx, 8.9, -2.1));
-    pushItem(9.4, 3.25, () => this.drawBasketballHoopAndBall3D(ctx));
-    pushItem(14.7, 0.7, () => this.drawSoccerGoalAndBall3D(ctx));
-    pushItem(12.4, 4.8, () => this.drawPingPongTableAndBall3D(ctx));
-    pushItem(14.3, 4.5, () => this.drawTree3D(ctx, 14.3, 4.5));
-    pushItem(6.2, 6.9, () => this.drawCoffeeCafe3D(ctx, 6.2, 6.9));
-    pushItem(8.6, 7.0, () => this.drawLoungeSofa3D(ctx, 8.6, 7.0));
-    pushItem(11.1, 7.1, () => this.drawDrinksBar3D(ctx, 11.1, 7.1));
-    pushItem(13.5, 7.0, () => this.drawDiscoBall3D(ctx, 13.5, 7.0));
+    // West Infrastructure & Meeting 3D Interiors
+    if (serverTier >= 1) pushItem(-12.5, -5.8, () => this.drawServerRoom3D(ctx, serverTier));
+    if (confTier >= 1) pushItem(-12.5, 0.0, () => this.drawConferenceRoom3D(ctx, confTier));
+    if (lobbyTier >= 1) pushItem(-12.5, 5.8, () => this.drawLobbyRoom3D(ctx, lobbyTier));
+
+    // Sports Equipment & Animated Balls (only render built zones)
+    if (pbTier >= 1) pushItem(7.4, -6.65, () => this.drawPickleballNetAndBall3D(ctx));
+    if (gymTier >= 1) {
+      pushItem(5.8, -2.5, () => this.drawTreadmill3D(ctx, 5.8, -2.5));
+      pushItem(7.2, -2.5, () => this.drawTreadmill3D(ctx, 7.2, -2.5));
+      pushItem(8.9, -2.1, () => this.drawWeightsStation3D(ctx, 8.9, -2.1));
+    }
+    if (bballTier >= 1) pushItem(9.4, 3.25, () => this.drawBasketballHoopAndBall3D(ctx));
+    if (soccerTier >= 1) pushItem(14.7, 0.7, () => this.drawSoccerGoalAndBall3D(ctx));
+    if (barTier >= 1) {
+      pushItem(12.4, 4.8, () => this.drawPingPongTableAndBall3D(ctx));
+      pushItem(14.3, 4.5, () => this.drawTree3D(ctx, 14.3, 4.5));
+      pushItem(6.2, 6.9, () => this.drawCoffeeCafe3D(ctx, 6.2, 6.9));
+      pushItem(8.6, 7.0, () => this.drawLoungeSofa3D(ctx, 8.6, 7.0));
+      pushItem(11.1, 7.1, () => this.drawDrinksBar3D(ctx, 11.1, 7.1));
+      pushItem(13.5, 7.0, () => this.drawDiscoBall3D(ctx, 13.5, 7.0));
+    }
 
     for (const actor of this.actors.values()) {
       pushItem(actor.x, actor.y, () => this.drawCharacter3D(ctx, actor));
@@ -949,18 +1091,23 @@ export class Office3DScene {
     }
 
     // Zone labels
-    this.drawZoneLabel(ctx, 7.4, -9.3, 0.15, 'PICKLEBALL', '#86efac');
-    this.drawZoneLabel(ctx, 12.6, -9.3, 0.15, 'SWIMMING POOL', '#7dd3fc');
-    this.drawZoneLabel(ctx, 7.4, -3.7, 0.15, 'FITNESS GYM', '#fde047');
-    this.drawZoneLabel(ctx, 12.6, -2.0, 0.15, 'SOCCER PITCH', '#86efac');
-    this.drawZoneLabel(ctx, 7.4, 0.8, 0.15, 'BASKETBALL', '#fdba74');
-    this.drawZoneLabel(ctx, 12.6, 3.7, 0.15, 'PING-PONG', '#6ee7b7');
-    this.drawZoneLabel(ctx, 7.4, 6.0, 0.15, 'COFFEE & DRINKS', '#fdba74');
-    this.drawZoneLabel(ctx, 12.6, 6.3, 0.15, 'BAR & DANCE FLOOR', '#f0abfc');
+    if (serverTier >= 1) this.drawZoneLabel(ctx, -12.5, -9.0, 0.15, 'SERVER VAULT', '#38bdf8');
+    if (confTier >= 1) this.drawZoneLabel(ctx, -12.5, -2.6, 0.15, 'BOARDROOM', '#c4b5fd');
+    if (lobbyTier >= 1) this.drawZoneLabel(ctx, -12.5, 3.0, 0.15, 'RECEPTION LOBBY', '#6ee7b7');
+    if (pbTier >= 1) this.drawZoneLabel(ctx, 7.4, -9.3, 0.15, 'PICKLEBALL', '#86efac');
+    if (swimTier >= 1) this.drawZoneLabel(ctx, 12.6, -9.3, 0.15, 'SWIMMING POOL', '#7dd3fc');
+    if (gymTier >= 1) this.drawZoneLabel(ctx, 7.4, -3.7, 0.15, 'FITNESS GYM', '#fde047');
+    if (soccerTier >= 1) this.drawZoneLabel(ctx, 12.6, -2.0, 0.15, 'SOCCER PITCH', '#86efac');
+    if (bballTier >= 1) this.drawZoneLabel(ctx, 7.4, 0.8, 0.15, 'BASKETBALL', '#fdba74');
+    if (barTier >= 1) {
+      this.drawZoneLabel(ctx, 12.6, 3.7, 0.15, 'PING-PONG', '#6ee7b7');
+      this.drawZoneLabel(ctx, 7.4, 6.0, 0.15, 'COFFEE & DRINKS', '#fdba74');
+      this.drawZoneLabel(ctx, 12.6, 6.3, 0.15, 'BAR & DANCE FLOOR', '#f0abfc');
+    }
 
     for (const agent of this.team) {
       const st = STATIONS[agent.id];
-      if (!st) continue;
+      if (!st || this.getRoomTier(agent.id) === 0) continue;
       this.drawZoneLabel(ctx, st.x, st.y + 1.8, 0.15, st.label.toUpperCase(), agent.accent);
     }
 
@@ -1056,15 +1203,34 @@ export class Office3DScene {
     this.drawBox3D(ctx, st.chairX, st.chairY, 0.2, 0.6, 0.6, 0.24, '#334155');
     this.drawBox3D(ctx, st.chairX, st.chairY + 0.22, 0.44, 0.52, 0.14, 0.42, agent.accent);
 
-    // Executive walnut/chrome desk (CEO gets grand mahogany + gold triple-monitor setup)
+    // Executive walnut/chrome desk (CEO gets upgradable Tier 1-3 Executive Command Desk!)
     const isCeo = agent.id === 'ceo';
-    this.drawBox3D(ctx, st.deskX, st.deskY, 0, isCeo ? 2.15 : 1.85, isCeo ? 1.05 : 0.94, 0.7, isCeo ? '#78350f' : '#925e38');
-    this.drawBox3D(ctx, st.deskX, st.deskY + (isCeo ? 0.51 : 0.46), 0.64, isCeo ? 2.17 : 1.87, 0.04, 0.06, agent.accent, 0);
+    const deskTier = isCeo ? this.upgrades.deskTier || 1 : 1;
+    const deskColor = isCeo && deskTier === 3 ? '#1e3a5f' : isCeo ? '#78350f' : '#925e38';
+    const deskW = isCeo ? (deskTier >= 2 ? 2.45 : 2.15) : 1.85;
+    const deskD = isCeo ? (deskTier >= 2 ? 1.15 : 1.05) : 0.94;
+    this.drawBox3D(ctx, st.deskX, st.deskY, 0, deskW, deskD, 0.7, deskColor);
+    this.drawBox3D(
+      ctx,
+      st.deskX,
+      st.deskY + deskD / 2,
+      deskTier === 3 ? 0.06 : 0.64,
+      deskW + 0.04,
+      0.05,
+      deskTier === 3 ? 0.1 : 0.06,
+      isCeo && deskTier === 3 ? '#fbbf24' : agent.accent,
+      0
+    );
+
+    if (isCeo && deskTier >= 2) {
+      // Side executive wing return
+      this.drawBox3D(ctx, st.deskX - 1.05, st.deskY + 0.45, 0, 0.45, 0.95, 0.7, deskColor);
+    }
 
     // Warm glowing desk lamp
     this.drawBox3D(ctx, st.deskX + 0.75, st.deskY + 0.22, 0.7, 0.14, 0.14, 0.36, '#fde047');
 
-    // Dual/Triple glowing curved monitors
+    // Dual/Triple/5-Screen glowing monitors
     const screenColor = isWorking ? agent.accent : '#38bdf8';
     this.drawBox3D(ctx, st.deskX - 0.42, st.deskY - 0.15, 0.7, 0.68, 0.14, 0.48, '#0f172a');
     this.drawBox3D(ctx, st.deskX - 0.42, st.deskY - 0.07, 0.76, 0.58, 0.05, 0.36, screenColor, 0);
@@ -1073,6 +1239,14 @@ export class Office3DScene {
     if (isCeo) {
       this.drawBox3D(ctx, st.deskX, st.deskY - 0.18, 0.7, 0.56, 0.14, 0.52, '#0f172a');
       this.drawBox3D(ctx, st.deskX, st.deskY - 0.1, 0.76, 0.48, 0.05, 0.4, '#fbbf24', 0);
+      if (deskTier >= 2) {
+        this.drawBox3D(ctx, st.deskX - 0.88, st.deskY - 0.06, 0.7, 0.44, 0.14, 0.44, '#0f172a');
+        this.drawBox3D(ctx, st.deskX - 0.88, st.deskY + 0.02, 0.76, 0.36, 0.05, 0.32, '#22d3ee', 0);
+      }
+      if (deskTier >= 3) {
+        this.drawBox3D(ctx, st.deskX + 0.88, st.deskY - 0.06, 0.7, 0.44, 0.14, 0.44, '#0f172a');
+        this.drawBox3D(ctx, st.deskX + 0.88, st.deskY + 0.02, 0.76, 0.36, 0.05, 0.32, '#a78bfa', 0);
+      }
     }
     this.drawBox3D(ctx, st.deskX, st.deskY + 0.2, 0.7, 0.74, 0.22, 0.04, '#1e293b');
 
@@ -1086,10 +1260,44 @@ export class Office3DScene {
     this.drawBox3D(ctx, st.x - 1.35, st.y - 1.2, 0.28, 0.5, 0.5, 0.42, '#22c55e');
 
     if (agentId === 'ceo') {
-      // Gold trophy/globe pedestal + visitor chairs
-      this.drawBox3D(ctx, st.x + 1.25, st.y + 1.05, 0, 0.45, 0.45, 0.85, '#78350f');
-      this.drawBox3D(ctx, st.x + 1.25, st.y + 1.05, 0.85, 0.32, 0.32, 0.32, '#fbbf24');
-      this.drawBox3D(ctx, st.x - 1.15, st.y + 1.05, 0, 0.48, 0.48, 0.38, '#b45309');
+      const decorTier = this.upgrades.decorTier || 1;
+      const brainTier = this.upgrades.brainLinkTier || 1;
+
+      // Tier 1: Gold trophy pedestal + visitor seat
+      this.drawBox3D(ctx, st.x + 1.28, st.y + 1.05, 0, 0.45, 0.45, 0.85, '#78350f');
+      this.drawBox3D(ctx, st.x + 1.28, st.y + 1.05, 0.85, 0.32, 0.32, 0.32, '#fbbf24');
+      this.drawBox3D(ctx, st.x - 1.2, st.y + 1.05, 0, 0.48, 0.48, 0.38, '#b45309');
+
+      // Tier 2: Executive Velvet Lounge Sofa & Glass Coffee Table inside CEO office
+      if (decorTier >= 2) {
+        this.drawBox3D(ctx, st.x + 0.2, st.y + 1.3, 0, 1.35, 0.55, 0.34, '#6d28d9');
+        this.drawBox3D(ctx, st.x + 0.2, st.y + 1.5, 0.34, 1.35, 0.16, 0.34, '#5b21b6');
+        this.drawBox3D(ctx, st.x + 0.2, st.y + 0.82, 0, 0.72, 0.34, 0.24, '#38bdf8');
+      }
+
+      // Tier 3: Private Executive Espresso Bar, Twin Palm & Illuminated Gold Art Wall
+      if (decorTier >= 3) {
+        this.drawBox3D(ctx, st.x + 1.38, st.y - 0.85, 0, 0.48, 0.9, 0.75, '#451a03');
+        this.drawBox3D(ctx, st.x + 1.38, st.y - 0.85, 0.75, 0.32, 0.34, 0.34, '#e2e8f0');
+        this.drawBox3D(ctx, st.x - 1.55, st.y - 0.1, 0.5, 0.08, 1.1, 0.75, '#fbbf24');
+        this.drawBox3D(ctx, st.x + 1.35, st.y - 1.45, 0, 0.34, 0.34, 0.28, '#9a3412');
+        this.drawBox3D(ctx, st.x + 1.35, st.y - 1.45, 0.28, 0.52, 0.52, 0.5, '#16a34a');
+      }
+
+      // Brain Link Tier 3: In-Office Holographic J.A.R.V.I.S. Brain Projector!
+      if (brainTier >= 3) {
+        this.drawBox3D(ctx, st.x - 1.15, st.y + 0.25, 0, 0.65, 0.65, 0.45, '#1e3a8a');
+        const holoZ = this.reducedMotion ? 0.85 : 0.85 + Math.sin(this.clockSec * 3) * 0.1;
+        const hp = this.project(st.x - 1.15, st.y + 0.25, holoZ);
+        ctx.save();
+        ctx.fillStyle = 'rgba(56, 189, 248, 0.85)';
+        ctx.shadowColor = '#38bdf8';
+        ctx.shadowBlur = 14;
+        ctx.beginPath();
+        ctx.arc(hp.sx, hp.sy, 7 * this.zoom, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
     } else if (agentId === 'sage') {
       // Packed multi-colored research bookshelf
       this.drawBox3D(ctx, st.x + 1.25, st.y + 1.1, 0, 1.0, 0.44, 1.4, '#78350f');
@@ -1196,6 +1404,67 @@ export class Office3DScene {
       ctx.arc(ball.sx, ball.sy, 4.6 * this.zoom, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
+    }
+  }
+
+  drawBlueprintPlot(ctx, x1, y1, x2, y2, label, roomId) {
+    this.drawFloorQuad(ctx, x1, y1, x2, y2, 'rgba(56, 189, 248, 0.06)', 'rgba(56, 189, 248, 0.5)');
+    const cx = (x1 + x2) / 2;
+    const cy = (y1 + y2) / 2;
+    this.drawZoneLabel(ctx, cx, cy, 0.25, label, '#7dd3fc');
+    const p = this.project(cx, cy, 0.2);
+    this.hitBoxes.push({ id: `room:${roomId}`, sx: p.sx, sy: p.sy, radius: 26 * this.zoom });
+  }
+
+  drawServerRoom3D(ctx, tier) {
+    const rackCoords = [
+      [-13.5, -7.2],
+      [-12.2, -7.2],
+      [-13.5, -5.1],
+      [-12.2, -5.1]
+    ];
+    if (tier >= 2) {
+      rackCoords.push([-11.2, -7.2], [-11.2, -5.1]);
+    }
+    const blink = !this.reducedMotion && Math.sin(this.clockSec * 5) > 0;
+    for (let i = 0; i < rackCoords.length; i += 1) {
+      const [rx, ry] = rackCoords[i];
+      this.drawBox3D(ctx, rx, ry, 0, 0.68, 0.68, 1.75, '#0f172a');
+      this.drawBox3D(ctx, rx, ry + 0.35, 1.3, 0.52, 0.05, 0.14, blink ^ (i % 2 === 0) ? '#38bdf8' : '#34d399', 0);
+      this.drawBox3D(ctx, rx, ry + 0.35, 0.85, 0.52, 0.05, 0.1, '#facc15', 0);
+    }
+    if (tier >= 3) {
+      // Cooling cylinder & holographic network hub
+      this.drawBox3D(ctx, -12.5, -6.1, 0, 0.75, 0.75, 1.9, '#0369a1');
+      this.drawBox3D(ctx, -12.5, -6.1, 1.9, 0.5, 0.5, 0.3, '#38bdf8');
+    }
+  }
+
+  drawConferenceRoom3D(ctx, tier) {
+    // Glass boardroom table + 6 chairs + presentation screen
+    this.drawBox3D(ctx, -12.5, 0.0, 0.38, 1.35, 2.7, 0.1, '#38bdf8');
+    this.drawBox3D(ctx, -12.5, 0.0, 0, 0.75, 1.8, 0.38, '#1e293b');
+    for (const cy of [-0.9, 0.0, 0.9]) {
+      this.drawBox3D(ctx, -13.55, cy, 0, 0.42, 0.42, 0.45, '#475569');
+      this.drawBox3D(ctx, -11.45, cy, 0, 0.42, 0.42, 0.45, '#475569');
+    }
+    this.drawBox3D(ctx, -14.1, 0.0, 0.7, 0.12, 2.1, 1.0, tier >= 2 ? '#a78bfa' : '#334155');
+    if (tier >= 3) {
+      this.drawBox3D(ctx, -12.5, 0.0, 0.48, 0.55, 0.55, 0.35, '#fbbf24');
+    }
+  }
+
+  drawLobbyRoom3D(ctx, tier) {
+    // Reception desk + monitor + waiting sofa + trees
+    this.drawBox3D(ctx, -12.4, 5.2, 0, 1.85, 0.75, 0.78, '#78350f');
+    this.drawBox3D(ctx, -12.4, 5.1, 0.78, 0.65, 0.14, 0.42, '#38bdf8');
+    this.drawBox3D(ctx, -12.6, 7.4, 0, 1.9, 0.75, 0.4, '#10b981');
+    if (tier >= 2) {
+      this.drawBox3D(ctx, -14.0, 6.2, 0.5, 0.12, 1.8, 1.1, '#34d399');
+    }
+    if (tier >= 3) {
+      this.drawTree3D(ctx, -11.3, 7.6);
+      this.drawTree3D(ctx, -13.8, 4.2);
     }
   }
 

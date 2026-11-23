@@ -236,4 +236,26 @@ test('HTTP API enforces validation, SSRF baseUrl guard, 404s, and cursor paginat
     body: { message: 'hi' }
   });
   assert.equal(unknownAgentChat.status, 404);
+
+  // CEO Office Upgrades & UI Theme endpoints
+  const getUpgrades = await client.request('GET', '/api/office/upgrades');
+  assert.equal(getUpgrades.status, 200);
+  const initialUp = await getUpgrades.json();
+  assert.equal(initialUp.officeLevel, 3);
+  assert.equal(initialUp.uiTheme, 'stark-cyan');
+
+  const putUpgrades = await client.request('PUT', '/api/office/upgrades', {
+    headers: { 'Content-Type': 'application/json' },
+    body: { deskTier: 3, brainLinkTier: 3, decorTier: 2, uiTheme: 'executive-gold' }
+  });
+  assert.equal(putUpgrades.status, 200);
+  const updatedUp = await putUpgrades.json();
+  assert.equal(updatedUp.officeLevel, 8);
+  assert.equal(updatedUp.uiTheme, 'executive-gold');
+
+  const badUpgrade = await client.request('PUT', '/api/office/upgrades', {
+    headers: { 'Content-Type': 'application/json' },
+    body: { deskTier: 9 }
+  });
+  assert.equal(badUpgrade.status, 400);
 });

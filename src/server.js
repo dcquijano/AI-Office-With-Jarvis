@@ -8,6 +8,7 @@ import { chatWithAgent } from './jarvis/agentChat.js';
 import { runMissionPipeline } from './jarvis/executor.js';
 import { answerAsJarvis, GUIDED_TOUR_STEPS, PRESET_MISSIONS } from './jarvis/guide.js';
 import { detectLocalLlms } from './jarvis/localLlm.js';
+import { applyUpgradePatch, createDefaultUpgrades, serializeUpgrades } from './jarvis/officeUpgrades.js';
 import { readMissionArtifact } from './jarvis/storage.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -173,6 +174,7 @@ export function createApp(options = {}) {
   const missionOrder = [];
   const idempotencyIndex = new Map();
   const subscribers = new Map();
+  let officeUpgrades = createDefaultUpgrades();
 
   function emitMissionEvent(missionId, eventName, data) {
     const clients = subscribers.get(missionId);
@@ -251,6 +253,21 @@ export function createApp(options = {}) {
       if (method === 'GET' && pathname === '/api/llm/local') {
         const localInfo = await detectLocalLlms();
         return sendJson(res, 200, localInfo, requestId);
+      }
+
+      // CEO Office upgrades & UI design themes
+      if (method === 'GET' && pathname === '/api/office/upgrades') {
+        return sendJson(res, 200, serializeUpgrades(officeUpgrades), requestId);
+      }
+
+      if (method === 'PUT' && pathname === '/api/office/upgrades') {
+        const body = await readJsonBody(req);
+        const result = applyUpgradePatch(officeUpgrades, body);
+        if (result.error) {
+          return sendError(res, 400, 'VALIDATION_ERROR', result.error, requestId);
+        }
+        officeUpgrades = result.value;
+        return sendJson(res, 200, serializeUpgrades(officeUpgrades), requestId);
       }
 
       // Team & office layout metadata
