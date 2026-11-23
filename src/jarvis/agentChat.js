@@ -48,6 +48,27 @@ const AGENT_PERSONAS = Object.freeze({
 });
 
 function detectMoveIntent(lower) {
+  const talkMatch = lower.match(
+    /\b(?:talk|speak|meet|sync|chat|visit|check\s+in)\s+(?:with|to)?\s*(ceo|athena|sage|vulcan|nova|iris|aegis|vera|orion)\b/
+  );
+  if (talkMatch) {
+    const targetId = talkMatch[1];
+    const target = getAgentById(targetId);
+    return {
+      moveTo: `colleague:${targetId}`,
+      targetAgentId: targetId,
+      zoneLabel: `${target?.name || targetId}'s Office`
+    };
+  }
+  if (/\b(boardroom|conference|meeting\s*room|conference\s*room|briefing\s*room)\b/.test(lower)) {
+    return { moveTo: 'boardroom', zoneLabel: 'Executive Boardroom' };
+  }
+  if (/\b(server\s*room|server\s*vault|datacenter|data\s*center|racks|compute\s*vault)\b/.test(lower)) {
+    return { moveTo: 'server', zoneLabel: 'Server & Compute Vault' };
+  }
+  if (/\b(lobby|reception|front\s*desk)\b/.test(lower)) {
+    return { moveTo: 'lobby', zoneLabel: 'Reception Lobby' };
+  }
   if (/\b(swim|swimming|pool|lap|laps|dive)\b/.test(lower)) {
     return { moveTo: 'swim', zoneLabel: 'Swimming Pool' };
   }
@@ -75,8 +96,8 @@ function detectMoveIntent(lower) {
   if (/\b(pickleball|court|play|match|rally|paddle)\b/.test(lower)) {
     return { moveTo: 'pickleball', zoneLabel: 'Pickleball Court' };
   }
-  if (/\b(work|computer|desk|code|back to work|pc|office|focus)\b/.test(lower)) {
-    return { moveTo: 'computer', zoneLabel: 'Computer Desk' };
+  if (/\b(work|computer|desk|code|back to work|pc|office|focus|terminal)\b/.test(lower)) {
+    return { moveTo: 'computer', zoneLabel: 'Computer Workstation' };
   }
   return null;
 }
@@ -89,7 +110,17 @@ function buildNaturalLocalReply(agent, persona, message, options) {
   const moveIntent = agent.id === 'jarvis' ? null : detectMoveIntent(lower);
 
   if (moveIntent) {
+    if (moveIntent.moveTo.startsWith('colleague:')) {
+      const target = getAgentById(moveIntent.targetAgentId);
+      return {
+        reply: `Walking over to ${target?.name || moveIntent.targetAgentId}'s workstation in ${target?.departmentName || 'their department'} to sync directly on ${persona.specialty}.`,
+        action: moveIntent
+      };
+    }
     const zoneText = {
+      boardroom: `Heading into the Executive Boardroom now to review deliverables and synchronize with the team.`,
+      server: `Walking into the Server & Compute Vault to inspect the GPU compute racks and system telemetry.`,
+      lobby: `Heading down to the Reception Lobby to coordinate visitor check-ins and departmental updates.`,
       swim: `Heading to the Swimming Pool now! Nothing beats a few freestyle laps to reset focus.`,
       basketball: `Walking over to the Basketball Court! Watch me sink a three-pointer from the arc.`,
       soccer: `Heading to the Soccer Pitch! Ready to pass and score a few goals.`,
@@ -99,7 +130,7 @@ function buildNaturalLocalReply(agent, persona, message, options) {
       coffee: `Heading to the Coffee Cafe for an espresso—ping me anytime you need my ${persona.specialty}.`,
       bar: `Walking over to the Drinks Bar now! Grabbing a cold drink—cheers!`,
       dance: `Heading straight to the Neon Dance Floor! Time to celebrate with some music!`,
-      computer: `Heading right back to my ${agent.zone || 'Office'} computer! Drop your task or specs and let's go.`
+      computer: `Sitting down at my ${agent.zone || 'Office'} dual-monitor workstation now. Ready for specs, code, or live telemetry.`
     };
     return {
       reply: zoneText[moveIntent.moveTo] || `Heading over to the ${moveIntent.zoneLabel} now!`,
@@ -122,10 +153,10 @@ function buildNaturalLocalReply(agent, persona, message, options) {
   if (/^(hi|hello|hey|yo|sup|good morning|good afternoon|how are you|what'?s up)\b/.test(lower)) {
     const locationLine =
       activity === 'On Campus' || activity === 'Ready'
-        ? `I'm in the ${agent.zone || 'Command Core'}`
+        ? `I'm online at my ${agent.zone || 'Command Core'} workstation`
         : `I'm currently ${activity.toLowerCase()}`;
     return {
-      reply: `Hey! ${locationLine}. As ${agent.role || agent.title}, I specialize in ${persona.specialty}. What would you like to work on, or should I hit the pickleball court?`,
+      reply: `Hello! ${locationLine} (${agent.departmentName || 'HQ'}). As ${agent.role || agent.title}, I specialize in ${persona.specialty}. How can I assist you today?`,
       action: null
     };
   }
@@ -133,9 +164,9 @@ function buildNaturalLocalReply(agent, persona, message, options) {
   if (/\b(doing|where are you|status|busy|free)\b/.test(lower)) {
     const missionNote = mission
       ? ` Most recently we handled "${mission.prompt.slice(0, 50)}".`
-      : ' No active mission right now, so I am recharging on campus.';
+      : ' All systems nominal at the moment.';
     return {
-      reply: `Right now I'm ${activity.toLowerCase()}.${missionNote} Want me at my computer or on the pickleball court?`,
+      reply: `Right now I'm ${activity.toLowerCase()}.${missionNote} Want me at my computer workstation, in the Boardroom, or syncing with a colleague?`,
       action: null
     };
   }

@@ -218,6 +218,13 @@ const INFRA_ROOMS = {
 };
 
 const REC_SLOTS = [
+  { key: 'boardroom1', group: 'boardroom', x: 5.45, y: -1.1, activity: 'meeting', msg: 'Boardroom review' },
+  { key: 'boardroom2', group: 'boardroom', x: 7.55, y: -1.1, activity: 'meeting', msg: 'Syncing roadmap' },
+  { key: 'boardroom3', group: 'boardroom', x: 5.45, y: 1.1, activity: 'meeting', msg: 'Architecture sync' },
+  { key: 'boardroom4', group: 'boardroom', x: 7.55, y: 1.1, activity: 'meeting', msg: 'Executive brief' },
+  { key: 'server1', group: 'server', x: -17.8, y: -4.2, activity: 'server-ops', msg: 'GPU cluster check' },
+  { key: 'server2', group: 'server', x: -16.0, y: -6.1, activity: 'server-ops', msg: 'Telemetry nominal' },
+  { key: 'lobby1', group: 'lobby', x: -17.8, y: 6.2, activity: 'lobby', msg: 'Visitor briefing' },
   { key: 'pickleballA', group: 'pickleball', x: 12.2, y: -9.9, activity: 'pickleball', msg: 'Serving!' },
   { key: 'pickleballB', group: 'pickleball', x: 14.8, y: -9.9, activity: 'pickleball', msg: 'Ready!' },
   { key: 'swimLane1', group: 'swim', x: 18.1, y: -9.5, activity: 'swim', msg: 'Swimming laps!' },
@@ -252,38 +259,49 @@ const CHARACTER_STYLE = {
 
 const BANTER_PAIRS = [
   {
-    spot: 'swim',
+    spot: 'engineering-sync',
+    packet: ['vulcan', 'nova', '#22d3ee'],
     lines: [
-      { speaker: 'athena', text: 'Water feels great—4 laps down!' },
-      { speaker: 'sage', text: 'Swimming resets focus fast.' }
+      { speaker: 'vulcan', text: 'API schema & OpenAPI types pushed to main!' },
+      { speaker: 'nova', text: 'Confirmed on my screen—wiring the UI components now.' }
     ]
   },
   {
-    spot: 'basketball',
+    spot: 'infra-comms',
+    packet: ['aegis', 'orion', '#60a5fa'],
     lines: [
-      { speaker: 'vulcan', text: 'Swish from downtown! Nothing but net.' },
-      { speaker: 'nova', text: 'Check the ball—my turn from the arc!' }
+      { speaker: 'aegis', text: 'TLS boundaries & SSRF rules verified green.' },
+      { speaker: 'orion', text: 'Copy that—Server Vault telemetry & CI checks look clean.' }
     ]
   },
   {
-    spot: 'pickleball',
+    spot: 'boardroom-brief',
+    packet: ['athena', 'ceo', '#fbbf24'],
     lines: [
-      { speaker: 'iris', text: 'Cross-court dink! Point to UI Design.' },
-      { speaker: 'vera', text: 'Line call verified—good shot!' }
+      { speaker: 'athena', text: 'CEO, Q4 sprint milestones are synced on the board!' },
+      { speaker: 'ceo', text: 'Approved—keep Quality & Security sign-off tight.' }
     ]
   },
   {
-    spot: 'soccer',
+    spot: 'design-qa-review',
+    packet: ['iris', 'vera', '#f472b6'],
     lines: [
-      { speaker: 'orion', text: 'Top-corner goal on the futsal pitch!' },
-      { speaker: 'aegis', text: 'Solid defense, almost blocked it.' }
+      { speaker: 'iris', text: 'Updated high-contrast tokens on my design monitor.' },
+      { speaker: 'vera', text: 'Running automated E2E & WCAG checks on it now!' }
     ]
   },
   {
-    spot: 'bar-dance',
+    spot: 'research-coffee',
     lines: [
-      { speaker: 'iris', text: 'Iced latte at the bar, then hitting the dance floor!' },
-      { speaker: 'nova', text: 'DJ lights look crisp—let’s dance!' }
+      { speaker: 'sage', text: 'Benchmark report compiled—grabbing an espresso!' },
+      { speaker: 'athena', text: 'Save me a cup, joining right after this review.' }
+    ]
+  },
+  {
+    spot: 'athletic-break',
+    lines: [
+      { speaker: 'vulcan', text: 'Swish from downtown on the break court!' },
+      { speaker: 'nova', text: 'My turn—then back to our dual-monitor workstations.' }
     ]
   }
 ];
@@ -499,15 +517,15 @@ export class Office3DScene {
 
   initActors(team) {
     const initialSpots = {
-      ceo: { x: STATIONS.ceo.chairX, y: STATIONS.ceo.chairY, slotKey: 'computer:ceo', activity: 'at-computer', speech: 'Syncing w/ JARVIS' },
-      nova: { slot: REC_SLOTS[0] },
-      iris: { slot: REC_SLOTS[1] },
-      athena: { slot: REC_SLOTS[2] },
-      vulcan: { slot: REC_SLOTS[7] },
-      orion: { slot: REC_SLOTS[9] },
-      sage: { slot: REC_SLOTS[13] },
-      aegis: { x: STATIONS.aegis.chairX, y: STATIONS.aegis.chairY, slotKey: 'computer:aegis', activity: 'at-computer', speech: 'Security scan' },
-      vera: { x: STATIONS.vera.chairX, y: STATIONS.vera.chairY, slotKey: 'computer:vera', activity: 'at-computer', speech: 'QA suite green' }
+      ceo: { x: STATIONS.ceo.chairX, y: STATIONS.ceo.chairY, slotKey: 'computer:ceo', activity: 'at-computer', speech: 'Reviewing KPIs w/ JARVIS' },
+      athena: { x: STATIONS.athena.chairX, y: STATIONS.athena.chairY, slotKey: 'computer:athena', activity: 'at-computer', speech: 'Roadmap online' },
+      vulcan: { x: STATIONS.vulcan.chairX, y: STATIONS.vulcan.chairY, slotKey: 'computer:vulcan', activity: 'working', speech: 'Compiling backend API' },
+      nova: { x: STATIONS.nova.chairX, y: STATIONS.nova.chairY, slotKey: 'computer:nova', activity: 'working', speech: 'UI live on localhost' },
+      iris: { x: STATIONS.iris.chairX, y: STATIONS.iris.chairY, slotKey: 'computer:iris', activity: 'at-computer', speech: 'Design tokens ready' },
+      aegis: { x: STATIONS.aegis.chairX, y: STATIONS.aegis.chairY, slotKey: 'computer:aegis', activity: 'at-computer', speech: 'Security audit green' },
+      vera: { x: STATIONS.vera.chairX, y: STATIONS.vera.chairY, slotKey: 'computer:vera', activity: 'at-computer', speech: '10/10 QA suite green' },
+      orion: { slot: REC_SLOTS[4] },
+      sage: { slot: REC_SLOTS[0] }
     };
 
     for (const agent of team) {
@@ -549,13 +567,26 @@ export class Office3DScene {
     const st = STATIONS[agentId];
     if (!actor || !st) return;
 
+    if (typeof zoneGroup === 'string' && zoneGroup.startsWith('colleague:')) {
+      const targetId = zoneGroup.slice(10);
+      const targetSt = STATIONS[targetId];
+      if (!targetSt) return;
+      actor.slotKey = `colleague:${targetId}`;
+      const meetX = (targetSt.chairX ?? targetSt.x) + 0.9;
+      const meetY = (targetSt.chairY ?? targetSt.y) + 0.15;
+      this.setActorGoal(actor, meetX, meetY, 'colleague-talk', `Syncing w/ ${targetId.toUpperCase()}`);
+      this.spawnPacket(agentId, targetId, actor.accent);
+      this.onStatusChange();
+      return;
+    }
+
     if (zoneGroup === 'computer') {
       if (this.getRoomTier(agentId) === 0) {
         actor.slotKey = `huddle:${agentId}`;
         this.setActorGoal(actor, st.huddleX, st.huddleY, 'briefing', 'Build my office!');
       } else {
         actor.slotKey = `computer:${agentId}`;
-        this.setActorGoal(actor, st.chairX, st.chairY, 'at-computer', 'Back at desk!');
+        this.setActorGoal(actor, st.chairX, st.chairY, 'at-computer', 'At workstation!');
       }
       this.onStatusChange();
       return;
@@ -673,7 +704,15 @@ export class Office3DScene {
       case 'working':
         return 'Coding / Working';
       case 'at-computer':
-        return 'At Computer';
+        return 'At Workstation';
+      case 'meeting':
+        return 'In Boardroom';
+      case 'server-ops':
+        return 'Server Vault Ops';
+      case 'lobby':
+        return 'Reception Lobby';
+      case 'colleague-talk':
+        return 'Talking w/ Teammate';
       case 'pickleball':
         return 'Playing Pickleball';
       case 'swim':
@@ -751,10 +790,13 @@ export class Office3DScene {
         this.banterPairIdx += 1;
         const first = pair.lines[0];
         const second = pair.lines[1];
-        this.showAgentSpeech(first.speaker, first.text, 4.0);
+        if (pair.packet) {
+          this.spawnPacket(pair.packet[0], pair.packet[1], pair.packet[2]);
+        }
+        this.showAgentSpeech(first.speaker, first.text, 4.2);
         this.onBanter({ speakerId: first.speaker, text: first.text, zone: pair.spot });
         setTimeout(() => {
-          this.showAgentSpeech(second.speaker, second.text, 4.0);
+          this.showAgentSpeech(second.speaker, second.text, 4.2);
           this.onBanter({ speakerId: second.speaker, text: second.text, zone: pair.spot });
         }, 2000);
       }
@@ -801,6 +843,9 @@ export class Office3DScene {
           );
           const st = STATIONS[actor.id];
           const groupToRoom = {
+            boardroom: 'conferenceRoom',
+            server: 'serverRoom',
+            lobby: 'lobbyRoom',
             pickleball: 'pickleballCourt',
             swim: 'swimmingPool',
             gym: 'gymRoom',
@@ -1407,56 +1452,129 @@ export class Office3DScene {
     this.drawZoneLabel(ctx, cx, cy, 2.4, 'J.A.R.V.I.S. AI BRAIN', '#7dd3fc');
   }
 
+  drawMonitorDisplay3D(ctx, cx, cy, z0, w, h, accent, isWorking, phaseSeed = 0) {
+    // Dark monitor screen casing + glowing live code/chart display bars
+    this.drawBox3D(ctx, cx, cy - 0.04, z0 - 0.02, w + 0.1, 0.1, h + 0.1, '#0b1220');
+    this.drawBox3D(ctx, cx, cy + 0.02, z0, w, 0.04, h, '#0f172a', 0);
+
+    const pulse = !this.reducedMotion ? (Math.sin(this.clockSec * (isWorking ? 5 : 2) + phaseSeed) + 1) * 0.5 : 0.5;
+    const rows = 3;
+    for (let r = 0; r < rows; r += 1) {
+      const lineW = w * (0.45 + 0.38 * ((r + phaseSeed + (pulse > 0.5 ? 1 : 0)) % 2 ? 0.9 : 0.55));
+      const lineColor = r === 0 ? accent : r === 1 ? '#38bdf8' : '#34d399';
+      this.drawBox3D(
+        ctx,
+        cx - (w - lineW) * 0.4,
+        cy + 0.05,
+        z0 + h - 0.09 - r * 0.1,
+        lineW,
+        0.02,
+        0.045,
+        lineColor,
+        0
+      );
+    }
+  }
+
   drawWorkstation3D(ctx, agent, st, isWorking) {
-    this.drawBox3D(ctx, st.chairX, st.chairY, 0.2, 0.62, 0.62, 0.24, '#334155');
-    this.drawBox3D(ctx, st.chairX, st.chairY + 0.22, 0.44, 0.54, 0.14, 0.44, agent.accent);
+    // Realistic Executive Ergonomic Chair with caster base, armrests, cushion & high headrest
+    this.drawBox3D(ctx, st.chairX, st.chairY, 0.02, 0.42, 0.42, 0.14, '#1e293b');
+    this.drawBox3D(ctx, st.chairX, st.chairY, 0.16, 0.62, 0.62, 0.18, '#334155');
+    this.drawBox3D(ctx, st.chairX - 0.3, st.chairY, 0.32, 0.08, 0.42, 0.14, '#475569');
+    this.drawBox3D(ctx, st.chairX + 0.3, st.chairY, 0.32, 0.08, 0.42, 0.14, '#475569');
+    this.drawBox3D(ctx, st.chairX, st.chairY + 0.24, 0.34, 0.54, 0.12, 0.5, '#1e293b');
+    this.drawBox3D(ctx, st.chairX, st.chairY + 0.24, 0.72, 0.46, 0.1, 0.14, agent.accent);
 
     const isCeo = agent.id === 'ceo';
     const deskTier = isCeo ? this.upgrades.deskTier || 1 : 1;
     const roomTier = this.getRoomTier(agent.id);
-    const deskColor = isCeo && deskTier === 3 ? '#1e3a5f' : isCeo ? '#78350f' : '#925e38';
-    const deskW = isCeo ? (deskTier >= 2 ? 2.55 : 2.2) : roomTier >= 2 ? 2.15 : 1.9;
-    const deskD = isCeo ? (deskTier >= 2 ? 1.18 : 1.05) : 0.98;
-    this.drawBox3D(ctx, st.deskX, st.deskY, 0, deskW, deskD, 0.72, deskColor);
+    const deskColor = isCeo && deskTier === 3 ? '#1e3a5f' : isCeo ? '#78350f' : '#85583a';
+    const deskW = isCeo ? (deskTier >= 2 ? 2.65 : 2.25) : roomTier >= 2 ? 2.2 : 1.98;
+    const deskD = isCeo ? (deskTier >= 2 ? 1.2 : 1.08) : 1.02;
+
+    // Desk frame legs + main tabletop + accent front trim
+    this.drawBox3D(ctx, st.deskX - deskW * 0.44, st.deskY, 0, 0.14, deskD * 0.85, 0.68, '#1e293b');
+    this.drawBox3D(ctx, st.deskX + deskW * 0.44, st.deskY, 0, 0.14, deskD * 0.85, 0.68, '#1e293b');
+    this.drawBox3D(ctx, st.deskX, st.deskY, 0.64, deskW, deskD, 0.09, deskColor);
     this.drawBox3D(
       ctx,
       st.deskX,
       st.deskY + deskD / 2,
-      deskTier === 3 ? 0.06 : 0.66,
+      deskTier === 3 ? 0.06 : 0.65,
       deskW + 0.04,
-      0.05,
-      deskTier === 3 ? 0.1 : 0.06,
+      0.04,
+      0.06,
       isCeo && deskTier === 3 ? '#fbbf24' : agent.accent,
       0
     );
 
+    // Desktop ATX PC Workstation Tower beside right desk leg
+    const pcX = st.deskX + deskW * 0.45 + 0.24;
+    this.drawBox3D(ctx, pcX, st.deskY - 0.15, 0, 0.34, 0.66, 0.62, '#0f172a');
+    this.drawBox3D(ctx, pcX, st.deskY + 0.19, 0.16, 0.22, 0.03, 0.34, isWorking ? '#34d399' : agent.accent, 0);
+
     if (isCeo && deskTier >= 2) {
-      this.drawBox3D(ctx, st.deskX - 1.08, st.deskY + 0.45, 0, 0.45, 0.95, 0.72, deskColor);
+      this.drawBox3D(ctx, st.deskX - 1.12, st.deskY + 0.45, 0.64, 0.46, 0.95, 0.09, deskColor);
+      this.drawBox3D(ctx, st.deskX - 1.28, st.deskY + 0.78, 0, 0.14, 0.14, 0.64, '#1e293b');
     }
 
-    this.drawBox3D(ctx, st.deskX + 0.78, st.deskY + 0.22, 0.72, 0.14, 0.14, 0.36, '#fde047');
-
+    // Monitor riser stands + glowing realistic multi-monitor screens
     const screenColor = isWorking ? agent.accent : '#38bdf8';
-    this.drawBox3D(ctx, st.deskX - 0.44, st.deskY - 0.15, 0.72, 0.7, 0.14, 0.5, '#0f172a');
-    this.drawBox3D(ctx, st.deskX - 0.44, st.deskY - 0.07, 0.78, 0.6, 0.05, 0.38, screenColor, 0);
-    this.drawBox3D(ctx, st.deskX + 0.44, st.deskY - 0.15, 0.72, 0.7, 0.14, 0.5, '#0f172a');
-    this.drawBox3D(ctx, st.deskX + 0.44, st.deskY - 0.07, 0.78, 0.6, 0.05, 0.38, isWorking ? '#34d399' : agent.accent, 0);
+    this.drawBox3D(ctx, st.deskX - 0.46, st.deskY - 0.16, 0.73, 0.1, 0.1, 0.12, '#64748b');
+    this.drawBox3D(ctx, st.deskX + 0.46, st.deskY - 0.16, 0.73, 0.1, 0.1, 0.12, '#64748b');
+    this.drawMonitorDisplay3D(ctx, st.deskX - 0.46, st.deskY - 0.14, 0.83, 0.66, 0.42, screenColor, isWorking, 0);
+    this.drawMonitorDisplay3D(
+      ctx,
+      st.deskX + 0.46,
+      st.deskY - 0.14,
+      0.83,
+      0.66,
+      0.42,
+      isWorking ? '#34d399' : agent.accent,
+      isWorking,
+      1
+    );
     if (isCeo || roomTier >= 2) {
-      this.drawBox3D(ctx, st.deskX, st.deskY - 0.18, 0.72, 0.58, 0.14, 0.54, '#0f172a');
-      this.drawBox3D(ctx, st.deskX, st.deskY - 0.1, 0.78, 0.5, 0.05, 0.42, isCeo ? '#fbbf24' : '#38bdf8', 0);
+      this.drawBox3D(ctx, st.deskX, st.deskY - 0.2, 0.73, 0.1, 0.1, 0.14, '#64748b');
+      this.drawMonitorDisplay3D(
+        ctx,
+        st.deskX,
+        st.deskY - 0.18,
+        0.85,
+        0.56,
+        0.46,
+        isCeo ? '#fbbf24' : '#38bdf8',
+        isWorking,
+        2
+      );
     }
     if (isCeo && deskTier >= 2) {
-      this.drawBox3D(ctx, st.deskX - 0.92, st.deskY - 0.06, 0.72, 0.44, 0.14, 0.44, '#0f172a');
-      this.drawBox3D(ctx, st.deskX - 0.92, st.deskY + 0.02, 0.78, 0.36, 0.05, 0.32, '#22d3ee', 0);
+      this.drawMonitorDisplay3D(ctx, st.deskX - 0.98, st.deskY - 0.04, 0.82, 0.42, 0.36, '#22d3ee', isWorking, 3);
     }
     if (isCeo && deskTier >= 3) {
-      this.drawBox3D(ctx, st.deskX + 0.92, st.deskY - 0.06, 0.72, 0.44, 0.14, 0.44, '#0f172a');
-      this.drawBox3D(ctx, st.deskX + 0.92, st.deskY + 0.02, 0.78, 0.36, 0.05, 0.32, '#a78bfa', 0);
+      this.drawMonitorDisplay3D(ctx, st.deskX + 0.98, st.deskY - 0.04, 0.82, 0.42, 0.36, '#a78bfa', isWorking, 4);
     }
-    this.drawBox3D(ctx, st.deskX, st.deskY + 0.2, 0.72, 0.76, 0.22, 0.04, '#1e293b');
+
+    // Mechanical keyboard, mouse pad & mouse, ceramic coffee mug, and desk lamp
+    this.drawBox3D(ctx, st.deskX - 0.12, st.deskY + 0.22, 0.73, 0.68, 0.22, 0.04, '#1e293b');
+    this.drawBox3D(
+      ctx,
+      st.deskX - 0.12,
+      st.deskY + 0.22,
+      0.77,
+      0.6,
+      0.16,
+      0.015,
+      isWorking ? '#38bdf8' : '#475569',
+      0
+    );
+    this.drawBox3D(ctx, st.deskX + 0.38, st.deskY + 0.22, 0.73, 0.22, 0.24, 0.02, '#0f172a');
+    this.drawBox3D(ctx, st.deskX + 0.38, st.deskY + 0.22, 0.75, 0.11, 0.15, 0.04, '#cbd5e1');
+    this.drawBox3D(ctx, st.deskX - 0.68, st.deskY + 0.26, 0.73, 0.13, 0.13, 0.14, '#f8fafc');
+    this.drawBox3D(ctx, st.deskX + 0.78, st.deskY + 0.18, 0.73, 0.14, 0.14, 0.38, '#fde047');
 
     const p = this.project(st.deskX, st.deskY, 0.5);
-    this.hitBoxes.push({ id: agent.id, sx: p.sx, sy: p.sy, radius: 30 * this.zoom });
+    this.hitBoxes.push({ id: agent.id, sx: p.sx, sy: p.sy, radius: 32 * this.zoom });
   }
 
   drawRoomProp3D(ctx, agentId, st) {
@@ -1840,19 +1958,24 @@ export class Office3DScene {
     this.drawBox3D(ctx, renderX, renderY, zBase + 0.44, 0.46, 0.3, 0.52, style.suit);
     this.drawBox3D(ctx, renderX, renderY + 0.07, zBase + 0.74, 0.18, 0.18, 0.18, style.shirt, 0);
 
+    const isTypingAtComputer =
+      (actor.activity === 'at-computer' || actor.activity === 'working') && !actor.walking;
     const armSwing =
       actor.walking && !this.reducedMotion
         ? Math.sin(actor.walkPhase) * 0.18
         : isDancing && !this.reducedMotion
           ? Math.sin(this.clockSec * 9) * 0.35
-          : actor.activity === 'working' && !this.reducedMotion
-            ? Math.sin(actor.actionPhase) * 0.1
+          : isTypingAtComputer && !this.reducedMotion
+            ? Math.sin(actor.actionPhase * 1.4) * 0.09
             : 0;
-    const armZ = isDancing ? zBase + 0.85 : zBase + 0.5;
+    const armZ = isDancing ? zBase + 0.85 : isTypingAtComputer ? zBase + 0.56 : zBase + 0.5;
     this.drawBox3D(ctx, renderX - 0.3, renderY - armSwing, armZ, 0.12, 0.12, 0.4, style.suit);
     this.drawBox3D(ctx, renderX + 0.3, renderY + armSwing, armZ, 0.12, 0.12, 0.4, style.suit);
 
-    if (actor.activity === 'pickleball' || actor.activity === 'pingpong') {
+    if (actor.activity === 'meeting' || actor.activity === 'server-ops' || actor.activity === 'colleague-talk') {
+      // Official tablet / clipboard while collaborating or inspecting server racks
+      this.drawBox3D(ctx, renderX + 0.32, renderY + 0.14, zBase + 0.62, 0.2, 0.06, 0.26, '#38bdf8');
+    } else if (actor.activity === 'pickleball' || actor.activity === 'pingpong') {
       const paddleSwing = this.reducedMotion ? 0 : Math.sin(this.clockSec * 5) * 0.14;
       this.drawBox3D(
         ctx,
@@ -1884,6 +2007,12 @@ export class Office3DScene {
     this.drawBox3D(ctx, renderX, renderY, zBase + 1.25, 0.38, 0.36, 0.14, style.hair);
     if (style.visor) {
       this.drawBox3D(ctx, renderX, renderY + 0.16, zBase + 1.12, 0.26, 0.06, 0.08, '#38bdf8', 0);
+    }
+    if (isTypingAtComputer || actor.activity === 'meeting' || actor.activity === 'colleague-talk') {
+      // Official comms headset & mic boom for voice/computer calls
+      this.drawBox3D(ctx, renderX - 0.19, renderY, zBase + 1.08, 0.05, 0.12, 0.14, '#0f172a');
+      this.drawBox3D(ctx, renderX + 0.19, renderY, zBase + 1.08, 0.05, 0.12, 0.14, '#0f172a');
+      this.drawBox3D(ctx, renderX + 0.16, renderY + 0.14, zBase + 1.03, 0.12, 0.04, 0.04, actor.speech ? '#34d399' : '#38bdf8', 0);
     }
 
     const headPt = this.project(renderX, renderY, zBase + 0.85);

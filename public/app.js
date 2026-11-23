@@ -11,6 +11,8 @@ const state = {
   selectedDeskId: 'jarvis',
   activeDepartmentId: null,
   ceoFocus: false,
+  voiceEnabled: false,
+  listeningAgentId: null,
   officeUpgrades: null,
   draggedTaskPrompt: '',
   currentMission: null,
@@ -59,6 +61,7 @@ const els = {
   camReset: document.getElementById('cam-reset'),
   camCeoFocus: document.getElementById('cam-ceo-focus'),
   deptCamBar: document.getElementById('dept-cam-bar'),
+  voiceToggleBtn: document.getElementById('voice-toggle-btn'),
   briefingContent: document.getElementById('briefing-content'),
   deskInspectorContent: document.getElementById('desk-inspector-content'),
   ceoStudioContent: document.getElementById('ceo-studio-content'),
@@ -509,6 +512,50 @@ function renderCeoStudio() {
   els.ceoStudioContent.appendChild(wrap);
 }
 
+const VOICE_PROFILES = {
+  jarvis: { pitch: 0.92, rate: 1.03 },
+  ceo: { pitch: 0.86, rate: 0.98 },
+  athena: { pitch: 1.12, rate: 1.02 },
+  sage: { pitch: 1.04, rate: 0.98 },
+  vulcan: { pitch: 0.88, rate: 1.04 },
+  nova: { pitch: 1.15, rate: 1.06 },
+  iris: { pitch: 1.2, rate: 1.0 },
+  aegis: { pitch: 0.9, rate: 0.97 },
+  vera: { pitch: 1.1, rate: 1.02 },
+  orion: { pitch: 0.95, rate: 1.01 }
+};
+
+function speakText(agentId, text, force = false) {
+  if (!force && !state.voiceEnabled) return;
+  if (typeof window === 'undefined' || !('speechSynthesis' in window) || !text) return;
+  try {
+    window.speechSynthesis.cancel();
+    const utter = new SpeechSynthesisUtterance(String(text).slice(0, 320));
+    const prof = VOICE_PROFILES[agentId] || VOICE_PROFILES.jarvis;
+    utter.pitch = prof.pitch;
+    utter.rate = prof.rate;
+    window.speechSynthesis.speak(utter);
+  } catch {
+    // Ignore browser speech synthesis failures
+  }
+}
+
+function toggleVoiceMode() {
+  state.voiceEnabled = !state.voiceEnabled;
+  if (!state.voiceEnabled && typeof window !== 'undefined' && 'speechSynthesis' in window) {
+    try {
+      window.speechSynthesis.cancel();
+    } catch {
+      // Ignore cancel errors
+    }
+  }
+  if (els.voiceToggleBtn) {
+    els.voiceToggleBtn.textContent = state.voiceEnabled ? 'AI Voice: On' : 'AI Voice: Off';
+    els.voiceToggleBtn.setAttribute('aria-pressed', String(state.voiceEnabled));
+    els.voiceToggleBtn.classList.toggle('btn-voice-active', state.voiceEnabled);
+  }
+}
+
 async function sendDirectChat(agentId, text) {
   if (!state.agentChats.has(agentId)) state.agentChats.set(agentId, []);
   const history = state.agentChats.get(agentId);
@@ -544,6 +591,7 @@ async function sendDirectChat(agentId, text) {
       text: replyText,
       time: new Date().toISOString()
     });
+    speakText(agentId, replyText, false);
     if (officeScene && agentId !== 'jarvis') {
       if (data.action?.moveTo) {
         officeScene.moveAgentTo(agentId, data.action.moveTo);
@@ -565,16 +613,19 @@ async function sendDirectChat(agentId, text) {
   renderOfficeDock();
 }
 
-function buildDirectChatSection(agentId, agentName) {
+function buildDirectChatSection(agentId, agentName, collaborators = []) {
   const wrap = createEl('div', 'agent-chat-box');
-  wrap.appendChild(createEl('div', 'deliverable-meta', `Talk Directly to ${agentName} (1-on-1)`));
+  wrap.appendChild(createEl('div', 'deliverable-meta', `Talk Directly to ${agentName} (Text or Voice)`));
 
-  // Quick Campus Move / Starter Chips
+  // Quick Campus Move / Workplace & Recreation Chips
   if (agentId !== 'jarvis') {
     const actionsBar = createEl('div', 'agent-actions-bar');
     actionsBar.appendChild(createEl('span', 'agent-actions-label', 'Send to:'));
     const zones = [
       { key: 'computer', label: 'Computer' },
+      { key: 'boardroom', label: 'Boardroom' },
+      { key: 'server', label: 'Server Vault' },
+      { key: 'lobby', label: 'Lobby' },
       { key: 'pickleball', label: 'Pickleball' },
       { key: 'basketball', label: 'Basketball' },
       { key: 'swim', label: 'Swim Pool' },
@@ -595,11 +646,29 @@ function buildDirectChatSection(agentId, agentName) {
       actionsBar.appendChild(btn);
     }
     wrap.appendChild(actionsBar);
+
+    const teamTalkBar = createEl('div', 'agent-actions-bar');
+    teamTalkBar.appendChild(createEl('span', 'agent-actions-label', 'Walk & Talk w/:'));
+    for (const partnerId of collaborators.filter((cid) => cid !== 'jarvis')) {
+      const partner = state.team.find((a) => a.id === partnerId);
+      if (!partner) continue;
+      const chip = createEl('button', 'chip-btn', partner.name);
+      chip.type = 'button';
+      chip.addEventListener('click', () => {
+        officeScene?.moveAgentTo(agentId, `colleague:${partner.id}`);
+        officeScene?.showAgentSpeech(agentId, `Syncing w/ ${partner.name}`, 4);
+        renderDeskInspector();
+      });
+      teamTalkBar.appendChild(chip);
+    }
+    if (teamTalkBar.children.length > 1) {
+      wrap.appendChild(teamTalkBar);
+    }
   }
 
   const starters = createEl('div', 'agent-actions-bar');
   starters.appendChild(createEl('span', 'agent-actions-label', 'Ask:'));
-  for (const promptText of ['What are your skills?', 'Go swim laps', 'Shoot basketball']) {
+  for (const promptText of ['What is on your computer?', 'Meet in boardroom', 'Go back to computer']) {
     const chip = createEl('button', 'chip-btn', promptText);
     chip.type = 'button';
     chip.addEventListener('click', () => sendDirectChat(agentId, promptText));
@@ -614,23 +683,31 @@ function buildDirectChatSection(agentId, agentName) {
       createEl(
         'div',
         'log-empty',
-        `Chat naturally with ${agentName}. Ask about their work, or tell them to play pickleball, hit the gym, or head back to their computer.`
+        `Talk officially with ${agentName} at their workstation. Ask for status, send them to the Boardroom/Server Vault, or talk to a teammate.`
       )
     );
   } else {
     for (const msg of history) {
       const bubble = createEl('div', `chat-bubble ${msg.role === 'user' ? 'user' : ''}`);
-      bubble.appendChild(createEl('div', 'deliverable-meta', msg.sender));
+      const head = createEl('div', 'chat-bubble-head');
+      head.appendChild(createEl('div', 'deliverable-meta', msg.sender));
+      if (msg.role !== 'user') {
+        const speakBtn = createEl('button', 'btn-speak-mini', 'Speak');
+        speakBtn.type = 'button';
+        speakBtn.title = `Listen to ${msg.sender}`;
+        speakBtn.addEventListener('click', () => speakText(agentId, msg.text, true));
+        head.appendChild(speakBtn);
+      }
+      bubble.appendChild(head);
       bubble.appendChild(createEl('div', '', msg.text));
       historyEl.appendChild(bubble);
     }
   }
   if (state.typingAgentId === agentId) {
-    historyEl.appendChild(createEl('div', 'chat-bubble typing', `${agentName} is thinking...`));
+    historyEl.appendChild(createEl('div', 'chat-bubble typing', `${agentName} is responding...`));
   }
   wrap.appendChild(historyEl);
 
-  // Auto-scroll chat history to newest message
   requestAnimationFrame(() => {
     historyEl.scrollTop = historyEl.scrollHeight;
   });
@@ -640,13 +717,59 @@ function buildDirectChatSection(agentId, agentName) {
   input.type = 'text';
   input.maxLength = 1000;
   input.required = true;
-  input.placeholder = `Message ${agentName} (e.g. "hi", "go play pickleball", "review our API")...`;
+  input.placeholder = `Talk to ${agentName} (e.g. "meet in boardroom", "talk to nova", "status")...`;
   input.setAttribute('aria-label', `Message ${agentName}`);
+
+  const SpeechRec = typeof window !== 'undefined' && (window.SpeechRecognition || window.webkitSpeechRecognition);
+  if (SpeechRec) {
+    const micBtn = createEl(
+      'button',
+      `btn btn-secondary ${state.listeningAgentId === agentId ? 'btn-voice-active' : ''}`,
+      state.listeningAgentId === agentId ? 'Listening...' : 'Mic'
+    );
+    micBtn.type = 'button';
+    micBtn.title = `Speak to ${agentName} with microphone`;
+    micBtn.addEventListener('click', () => {
+      try {
+        const rec = new SpeechRec();
+        rec.lang = 'en-US';
+        rec.interimResults = false;
+        rec.maxAlternatives = 1;
+        state.listeningAgentId = agentId;
+        renderDeskInspector();
+        rec.onresult = (ev) => {
+          const transcript = ev.results?.[0]?.[0]?.transcript?.trim();
+          state.listeningAgentId = null;
+          if (transcript) {
+            sendDirectChat(agentId, transcript);
+          } else {
+            renderDeskInspector();
+          }
+        };
+        rec.onerror = () => {
+          state.listeningAgentId = null;
+          renderDeskInspector();
+        };
+        rec.onend = () => {
+          if (state.listeningAgentId === agentId) {
+            state.listeningAgentId = null;
+            renderDeskInspector();
+          }
+        };
+        rec.start();
+      } catch {
+        state.listeningAgentId = null;
+        renderDeskInspector();
+      }
+    });
+    form.appendChild(input);
+    form.appendChild(micBtn);
+  } else {
+    form.appendChild(input);
+  }
 
   const sendBtn = createEl('button', 'btn btn-primary', 'Send');
   sendBtn.type = 'submit';
-
-  form.appendChild(input);
   form.appendChild(sendBtn);
   form.addEventListener('submit', (ev) => {
     ev.preventDefault();
@@ -726,8 +849,28 @@ function renderDeskInspector() {
   );
   card.appendChild(modelCard);
 
+  const monitorBox = createEl('div', 'workstation-monitor');
+  const monitorBar = createEl('div', 'workstation-monitor-bar');
+  const roomTier = state.officeUpgrades?.rooms?.[agent.id] ?? 1;
+  monitorBar.appendChild(createEl('span', '', `PC-${agent.id.toUpperCase()} · Dual/Triple Display`));
+  monitorBar.appendChild(createEl('span', '', `Suite T${roomTier}/3 · Voice Comms Ready`));
+  monitorBox.appendChild(monitorBar);
+  const runningTask = (state.currentMission?.tasks ?? []).find(
+    (t) => t.agentId === agent.id && t.status === 'running'
+  );
+  monitorBox.appendChild(
+    createEl(
+      'div',
+      '',
+      runningTask
+        ? `> active_task: ${runningTask.title}`
+        : `> session: ${activity} · model=${agent.model}`
+    )
+  );
+  card.appendChild(monitorBox);
+
   card.appendChild(buildSkillsAndCollabsBox(agent));
-  card.appendChild(buildDirectChatSection(agent.id, agent.name));
+  card.appendChild(buildDirectChatSection(agent.id, agent.name, agent.collaboratesWith || []));
 
   const agentTasks = (state.currentMission?.tasks ?? []).filter((t) => t.agentId === agent.id);
   if (agentTasks.length > 0) {
@@ -1256,6 +1399,7 @@ async function init() {
 
 // 3D Camera Controls
 els.camCeoFocus.addEventListener('click', () => toggleCeoOfficeFocus());
+els.voiceToggleBtn?.addEventListener('click', () => toggleVoiceMode());
 els.camRotLeft.addEventListener('click', () => officeScene?.rotateCamera(-Math.PI / 6));
 els.camRotRight.addEventListener('click', () => officeScene?.rotateCamera(Math.PI / 6));
 els.camZoomIn.addEventListener('click', () => officeScene?.adjustZoom(0.14));

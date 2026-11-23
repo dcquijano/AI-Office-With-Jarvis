@@ -166,4 +166,17 @@ test('chatWithAgent validates agent/message, tracks context, and emits move acti
   const ceoReply = await chatWithAgent('ceo', 'What is our vision?', { useExternalLlm: false });
   assert.equal(ceoReply.agentId, 'ceo');
   assert.match(ceoReply.reply, /J\.A\.R\.V\.I\.S\./);
+
+  const boardroomReply = await chatWithAgent('athena', 'meet in the boardroom', { useExternalLlm: false });
+  assert.equal(boardroomReply.action?.moveTo, 'boardroom');
+
+  const serverReply = await chatWithAgent('orion', 'inspect the server vault', { useExternalLlm: false });
+  assert.equal(serverReply.action?.moveTo, 'server');
+
+  const lobbyReply = await chatWithAgent('iris', 'check the reception lobby', { useExternalLlm: false });
+  assert.equal(lobbyReply.action?.moveTo, 'lobby');
+
+  const colleagueReply = await chatWithAgent('vulcan', 'go talk to nova', { useExternalLlm: false });
+  assert.equal(colleagueReply.action?.moveTo, 'colleague:nova');
+  assert.equal(colleagueReply.action?.targetAgentId, 'nova');
 });
