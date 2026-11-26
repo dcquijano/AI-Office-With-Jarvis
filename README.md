@@ -42,3 +42,32 @@ node --test test/*.test.js
 - `GET /api/missions` — Cursor-paginated mission history
 - `GET /api/missions/:id` — Full mission state, DAG, logs, and final briefing
 - `GET /api/missions/:id/stream` — Live SSE stream for office animations
+
+## Realistic 3D Office, Real Sky & Boss Mode (Agent-Office Style)
+
+- **Engine**: Built on Three.js `0.170.0` (MIT License), vendored locally in `public/vendor/three/` — no `npm install` or external CDN required at runtime.
+- **Bright Daylight Architecture & Real Sky**: Oak wood floors, white desks, black ergonomic chairs, black-framed glass rooms, and large windows follow the real solar elevation at your time zone (`Auto / Day / Night` + time-of-day scrubber, with warm interior desk lamps & starfield after sunset — computed locally with zero network calls).
+- **Error Severity & Alarms**: Mission logs, worker errors, and simulated incidents are graded across `Info`, `Minor`, `Moderate`, `Major`, and `Critical` (`public/severity.js`). Repeated errors escalate, quiet incidents recover over time, desk alarm beacons flash when an agent reaches the panic threshold, and live terminal feeds update on every 3D monitor.
+- **Cinema Camera**: Press `C` (or click **Cinema (C)**) to drift through the office and follow active or alerting agents.
+- **Controls**:
+  - Drag horizontally to orbit, drag vertically to tilt camera pitch, scroll to zoom, or click any AI character/desk for 1-on-1 chat.
+  - Use **Quality** in the camera bar to cycle `High` / `Balanced` / `Performance` (persisted in `localStorage`).
+  - Use **Fullscreen** to expand the 3D campus view.
+- **Fallback**: Append `?legacy3d=1` to the URL to force the classic 2D isometric canvas renderer. If WebGL is unavailable in the browser, the app falls back to the isometric renderer automatically.
+
+## Boss Mode (Walk the Office in 3D)
+
+Press `B` or click **Boss Mode (B)** above the campus view, customize your avatar (name, outfit color, hair, skin tone, glasses), and walk around with your AI team. Your avatar profile is saved in `localStorage`.
+
+| Key | Action |
+| --- | --- |
+| `B` | Toggle Boss Mode |
+| `W` `A` `S` `D` / arrows | Walk (relative to the camera) |
+| `Shift` | Run |
+| Mouse drag / wheel | Orbit/look and zoom |
+| `E` | Open the nearest agent's terminal (or talk to J.A.R.V.I.S.) |
+| `V` | Toggle first-person / third-person view |
+| `C` | Toggle Cinema camera |
+| `Esc` | Close terminal or leave Boss Mode |
+
+Agents greet you when you walk past, turn to face you, and your messages appear as speech bubbles above your avatar. Desks, glass walls, server racks, furniture and the pool are solid, and a live minimap shows where everyone is.

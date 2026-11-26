@@ -1,4 +1,7 @@
 import { Office3DScene } from './office3d.js';
+import { IncidentTracker, SEVERITY, severityInfo } from './severity.js';
+
+const PANIC_THRESHOLD_KEY = 'jarvis-panic-threshold';
 
 const state = {
   team: [],
@@ -20,6 +23,13 @@ const state = {
   agentChats: new Map(),
   typingAgentId: null,
   banterLogs: [],
+  tracker: new IncidentTracker(),
+  panicThreshold: Math.max(1, Math.min(4, Number(window.localStorage?.getItem(PANIC_THRESHOLD_KEY) || 3))),
+  agentFeed: new Map(),
+  panickedAgents: new Set(),
+  seenMissionLogKeys: new Set(),
+  terminalAgentId: null,
+  simErrorIdx: 0,
   sessionLlm: {
     apiKey: '',
     baseUrl: '',
@@ -60,6 +70,39 @@ const els = {
   camZoomOut: document.getElementById('cam-zoom-out'),
   camReset: document.getElementById('cam-reset'),
   camCeoFocus: document.getElementById('cam-ceo-focus'),
+  camQuality: document.getElementById('cam-quality'),
+  camFullscreen: document.getElementById('cam-fullscreen'),
+  camCinema: document.getElementById('cam-cinema'),
+  officeHud: document.getElementById('office-hud'),
+  incidentBanner: document.getElementById('incident-banner'),
+  skyBar: document.getElementById('sky-bar'),
+  skyMeta: document.getElementById('sky-meta'),
+  skySunrise: document.getElementById('sky-sunrise'),
+  skySunset: document.getElementById('sky-sunset'),
+  skyTimeSlider: document.getElementById('sky-time-slider'),
+  skyNowBtn: document.getElementById('sky-now-btn'),
+  errorsBadge: document.getElementById('errors-badge'),
+  errorsContent: document.getElementById('errors-content'),
+  terminalDialog: document.getElementById('terminal-dialog'),
+  terminalTitle: document.getElementById('terminal-title'),
+  terminalOutput: document.getElementById('terminal-output'),
+  terminalClose: document.getElementById('terminal-close'),
+  terminalChatBtn: document.getElementById('terminal-chat-btn'),
+  terminalCmdForm: document.getElementById('terminal-cmd-form'),
+  terminalCmdInput: document.getElementById('terminal-cmd-input'),
+  join3dBtn: document.getElementById('join-3d-btn'),
+  joinDialog: document.getElementById('join-dialog'),
+  joinForm: document.getElementById('join-form'),
+  joinCancel: document.getElementById('join-cancel'),
+  joinName: document.getElementById('join-name'),
+  joinHair: document.getElementById('join-hair'),
+  joinSkin: document.getElementById('join-skin'),
+  joinGlasses: document.getElementById('join-glasses'),
+  joinSwatches: document.getElementById('join-swatches'),
+  joinPreviewAvatar: document.getElementById('join-preview-avatar'),
+  joinPreviewName: document.getElementById('join-preview-name'),
+  officeJoinPrompt: document.getElementById('office-join-prompt'),
+  officeControlsHint: document.getElementById('office-controls-hint'),
   deptCamBar: document.getElementById('dept-cam-bar'),
   voiceToggleBtn: document.getElementById('voice-toggle-btn'),
   briefingContent: document.getElementById('briefing-content'),
@@ -196,6 +239,433 @@ function renderPipeline() {
   }
 }
 
+function supportsWebGL() {
+  try {
+    const testCanvas = document.createElement('canvas');
+    return Boolean(testCanvas.getContext('webgl2') || testCanvas.getContext('webgl'));
+  } catch {
+    return false;
+  }
+}
+
+async function createOfficeScene(options) {
+  const params = new URLSearchParams(window.location.search);
+  const forceLegacy = params.has('legacy3d');
+
+  if (!forceLegacy && supportsWebGL()) {
+    try {
+      const { RealisticOffice3DScene } = await import('./officeRealistic.js');
+      return new RealisticOffice3DScene(els.officeCanvas, options);
+    } catch (err) {
+      console.warn('Realistic 3D initialization failed; falling back to isometric renderer:', err);
+      const freshCanvas = els.officeCanvas.cloneNode(false);
+      els.officeCanvas.replaceWith(freshCanvas);
+      els.officeCanvas = freshCanvas;
+      els.officeFloor?.querySelectorAll('.office-label-layer').forEach((node) => node.remove());
+    }
+  }
+
+  return new Office3DScene(els.officeCanvas, options);
+}
+
+function renderOfficeHud() {
+  if (!els.officeHud) return;
+  clearElement(els.officeHud);
+
+  const rendererName = officeScene?.isRealistic ? 'Realistic 3D' : 'Isometric';
+  const liveChip = createEl('span', 'hud-chip', `● LIVE · ${rendererName}`);
+
+  const totalAgents = state.team.length;
+  const runningTasks = (state.currentMission?.tasks ?? []).filter((t) => t.status === 'running').length;
+  const stageText =
+    state.currentMission?.status === 'running'
+      ? `Stage: ${state.currentMission.currentStage || 'active'}`
+      : state.currentMission?.status === 'completed'
+        ? 'Mission completed'
+        : 'Free time — agents roaming';
+
+  const statsSpan = createEl(
+    'span',
+    'hud-stats',
+    `${runningTasks}/${totalAgents} working · ${stageText}`
+  );
+  els.officeHud.append(liveChip, statsSpan);
+  if (officeScene?.isPlayerActive?.()) {
+    const view = officeScene.getPlayerView?.() === 'first' ? 'First-person' : 'Third-person';
+    els.officeHud.appendChild(createEl('span', 'hud-chip', `● You're in · ${view}`));
+  }
+}
+
+const PLAYER_PROFILE_KEY = 'jarvis-player-profile';
+
+function loadPlayerProfile() {
+  try {
+    const raw = window.localStorage?.getItem(PLAYER_PROFILE_KEY);
+    const parsed = raw ? JSON.parse(raw) : null;
+    if (parsed && typeof parsed === 'object') return parsed;
+  } catch {
+    // Ignore malformed stored profile
+  }
+  return { name: 'You', color: '#22d3ee', hairStyle: 'short', skin: '#e8b88a', glasses: false };
+}
+
+function readJoinForm() {
+  const color = els.joinSwatches?.querySelector('input[name="join-color"]:checked')?.value || '#22d3ee';
+  return {
+    name: (els.joinName?.value || '').trim().slice(0, 24) || 'You',
+    color,
+    hairStyle: els.joinHair?.value || 'short',
+    skin: els.joinSkin?.value || '#e8b88a',
+    glasses: Boolean(els.joinGlasses?.checked)
+  };
+}
+
+function updateJoinPreview() {
+  const profile = readJoinForm();
+  if (els.joinPreviewAvatar) {
+    els.joinPreviewAvatar.textContent = profile.name.charAt(0).toUpperCase();
+    els.joinPreviewAvatar.style.setProperty('--join-color', profile.color);
+  }
+  if (els.joinPreviewName) els.joinPreviewName.textContent = profile.name;
+}
+
+function openJoinDialog() {
+  const profile = loadPlayerProfile();
+  if (els.joinName) els.joinName.value = profile.name === 'You' ? '' : profile.name;
+  if (els.joinHair) els.joinHair.value = profile.hairStyle || 'short';
+  if (els.joinSkin) els.joinSkin.value = profile.skin || '#e8b88a';
+  if (els.joinGlasses) els.joinGlasses.checked = Boolean(profile.glasses);
+  const swatch = els.joinSwatches?.querySelector(`input[value="${profile.color}"]`);
+  if (swatch) swatch.checked = true;
+  updateJoinPreview();
+  els.joinDialog?.showModal();
+  els.joinName?.focus();
+}
+
+function setPlayerPrompt(agentId) {
+  if (!els.officeJoinPrompt) return;
+  if (!agentId) {
+    els.officeJoinPrompt.hidden = true;
+    clearElement(els.officeJoinPrompt);
+    return;
+  }
+  const name =
+    agentId === 'jarvis'
+      ? 'J.A.R.V.I.S.'
+      : state.team.find((a) => a.id === agentId)?.name || agentId;
+  clearElement(els.officeJoinPrompt);
+  const label = agentId === 'jarvis' ? `Talk to ${name}` : `Read ${name}'s terminal`;
+  els.officeJoinPrompt.append(createEl('span', 'kbd', 'E'), document.createTextNode(label));
+  els.officeJoinPrompt.hidden = false;
+}
+
+function updatePlayerUi() {
+  const active = Boolean(officeScene?.isPlayerActive?.());
+  if (els.join3dBtn) {
+    els.join3dBtn.textContent = active ? 'Leave Boss Mode' : 'Boss Mode (B)';
+    els.join3dBtn.classList.toggle('is-joined', active);
+    els.join3dBtn.setAttribute('aria-pressed', String(active));
+  }
+  if (els.officeControlsHint) els.officeControlsHint.hidden = !active;
+  els.officeFloor?.classList.toggle('player-mode', active);
+  if (!active) setPlayerPrompt(null);
+  renderOfficeHud();
+}
+
+function pushAgentLine(agentId, text, hint) {
+  if (!agentId || !text) return;
+  const incident = state.tracker.report(agentId, text, { hint });
+  const level = incident ? incident.level : 0;
+  if (!state.agentFeed.has(agentId)) state.agentFeed.set(agentId, []);
+  const lines = state.agentFeed.get(agentId);
+  lines.push({ text: String(text), level, time: new Date().toISOString().slice(11, 19) });
+  if (lines.length > 40) lines.shift();
+}
+
+function ingestMissionTelemetry() {
+  const mission = state.currentMission;
+  if (!mission) return;
+  for (const entry of mission.logs ?? []) {
+    const key = `${mission.id}|${entry.timestamp}|${entry.stage}|${entry.message}`;
+    if (state.seenMissionLogKeys.has(key)) continue;
+    state.seenMissionLogKeys.add(key);
+    const targetId = entry.agentId || (entry.stage === 'error' ? 'vulcan' : null);
+    if (targetId) {
+      pushAgentLine(targetId, entry.message, entry.level);
+    }
+  }
+  for (const task of mission.tasks ?? []) {
+    if (task.status === 'running') {
+      const rKey = `${mission.id}|run|${task.id}`;
+      if (!state.seenMissionLogKeys.has(rKey)) {
+        state.seenMissionLogKeys.add(rKey);
+        pushAgentLine(task.agentId, `> running task #${task.id}: ${task.title}`);
+      }
+    } else if (task.status === 'completed') {
+      const cKey = `${mission.id}|done|${task.id}`;
+      if (!state.seenMissionLogKeys.has(cKey)) {
+        state.seenMissionLogKeys.add(cKey);
+        pushAgentLine(task.agentId, `✓ completed task #${task.id} (${task.durationMs || 0}ms)`);
+      }
+    }
+  }
+}
+
+function syncAgentStatuses() {
+  const statusMap = new Map();
+  const runningAgents = new Set(
+    (state.currentMission?.tasks ?? []).filter((t) => t.status === 'running').map((t) => t.agentId)
+  );
+
+  for (const agent of state.team) {
+    const level = state.tracker.agentLevel(agent.id);
+    const panic = level >= state.panicThreshold;
+    const feedLines = state.agentFeed.get(agent.id) || [];
+    const defaultLines =
+      feedLines.length > 0
+        ? feedLines
+        : [
+            { text: `$ ${agent.id} --watch`, level: 0 },
+            { text: `role: ${agent.role}`, level: 0 },
+            { text: `model: ${agent.model}`, level: 0 },
+            { text: 'status: 0 errors · standing by', level: 0 }
+          ];
+    statusMap.set(agent.id, {
+      level,
+      panic,
+      feed: {
+        title: `${agent.name} — terminal`,
+        lines: defaultLines,
+        level,
+        panic
+      }
+    });
+
+    if (panic && !state.panickedAgents.has(agent.id)) {
+      state.panickedAgents.add(agent.id);
+      if (!runningAgents.has(agent.id)) {
+        officeScene?.moveAgentTo(agent.id, 'coffee');
+      }
+      const worst = state.tracker.worstFor(agent.id);
+      if (worst) officeScene?.showAgentSpeech(agent.id, `ALERT: ${worst.text.slice(0, 32)}`, 5);
+    } else if (!panic && state.panickedAgents.has(agent.id)) {
+      state.panickedAgents.delete(agent.id);
+    }
+  }
+
+  officeScene?.setAgentStatuses?.(statusMap);
+
+  const incidents = state.tracker.list();
+  if (els.errorsBadge) {
+    els.errorsBadge.textContent = String(incidents.length);
+    els.errorsBadge.hidden = incidents.length === 0;
+  }
+
+  if (els.incidentBanner) {
+    const worst = incidents[0];
+    if (!worst) {
+      els.incidentBanner.hidden = true;
+    } else {
+      const info = severityInfo(worst.level);
+      const agentName = state.team.find((a) => a.id === worst.agentId)?.name || worst.agentId;
+      const mult = worst.count > 1 ? ` (×${worst.count})` : '';
+      els.incidentBanner.textContent = `● ${agentName} · ${info.label.toUpperCase()}: ${worst.text.slice(0, 58)}${mult}`;
+      els.incidentBanner.style.setProperty('--sev-color', info.color);
+      els.incidentBanner.dataset.agentId = worst.agentId;
+      els.incidentBanner.hidden = false;
+    }
+  }
+}
+
+function renderErrorsPanel() {
+  if (!els.errorsContent) return;
+  clearElement(els.errorsContent);
+
+  const card = createEl('div', 'inspector-card');
+  const head = createEl('div', 'dept-builder-head');
+  head.appendChild(createEl('h3', '', 'Error Severity & Incident Feed'));
+
+  const actions = createEl('div', 'collab-chips');
+  const simBtn = createEl('button', 'chip-btn', 'Simulate Incident');
+  simBtn.type = 'button';
+  simBtn.addEventListener('click', () => {
+    const samples = [
+      ['vulcan', 'FATAL: password authentication failed for user "app" (db)', 'error'],
+      ['nova', "TypeError: Cannot read properties of undefined (reading 'render')", 'error'],
+      ['orion', 'ERROR container api restarting (4 times in 2m) — ECONNREFUSED 5432', 'error'],
+      ['aegis', 'WARN deprecated TLS 1.1 cipher suite requested by proxy', 'warn']
+    ];
+    const [aid, msg, hint] = samples[state.simErrorIdx % samples.length];
+    state.simErrorIdx += 1;
+    pushAgentLine(aid, msg, hint);
+    syncAgentStatuses();
+    renderErrorsPanel();
+    renderOfficeDock();
+    if (state.terminalAgentId === aid && els.terminalDialog?.open) renderAgentTerminal();
+  });
+
+  const clearBtn = createEl('button', 'chip-btn', 'Clear All');
+  clearBtn.type = 'button';
+  clearBtn.addEventListener('click', () => {
+    state.tracker.clear();
+    syncAgentStatuses();
+    renderErrorsPanel();
+    renderOfficeDock();
+    if (els.terminalDialog?.open) renderAgentTerminal();
+  });
+  actions.append(simBtn, clearBtn);
+  head.appendChild(actions);
+  card.appendChild(head);
+
+  // Panic threshold selector
+  const settingsBox = createEl('div', 'skills-box');
+  settingsBox.appendChild(createEl('div', 'deliverable-meta', 'Panic Threshold (alarm light + lounge retreat)'));
+  const threshRow = createEl('div', 'studio-tier-row');
+  for (const s of SEVERITY.slice(1)) {
+    const btn = createEl(
+      'button',
+      `chip-btn ${state.panicThreshold === s.level ? 'active-chip' : ''}`,
+      s.label
+    );
+    btn.type = 'button';
+    btn.style.borderColor = state.panicThreshold === s.level ? s.color : '';
+    btn.addEventListener('click', () => {
+      state.panicThreshold = s.level;
+      try {
+        window.localStorage?.setItem(PANIC_THRESHOLD_KEY, String(s.level));
+      } catch {
+        // Ignore storage errors
+      }
+      syncAgentStatuses();
+      renderErrorsPanel();
+      renderOfficeDock();
+    });
+    threshRow.appendChild(btn);
+  }
+  settingsBox.appendChild(threshRow);
+
+  const legend = createEl('div', 'collab-chips');
+  const counts = state.tracker.counts();
+  for (const s of SEVERITY.slice(1)) {
+    const pill = createEl('span', 'sev-pill', `${s.label}: ${counts[s.level] || 0}`);
+    pill.style.setProperty('--sev-color', s.color);
+    legend.appendChild(pill);
+  }
+  settingsBox.appendChild(legend);
+  card.appendChild(settingsBox);
+
+  const incidents = state.tracker.list();
+  if (incidents.length === 0) {
+    card.appendChild(
+      createEl(
+        'div',
+        'empty-state',
+        '0 active incidents. All specialists are healthy. Click "Simulate Incident" to test severity colors, desk alarms, and terminal alerts.'
+      )
+    );
+  } else {
+    const list = createEl('ul', 'deliverable-list');
+    for (const inc of incidents) {
+      const info = severityInfo(inc.level);
+      const agentName = state.team.find((a) => a.id === inc.agentId)?.name || inc.agentId;
+      const li = createEl('li', 'deliverable-item incident-row');
+      li.style.setProperty('--sev-color', info.color);
+
+      const top = createEl('div', 'dept-room-head');
+      const left = createEl('span', 'sev-pill', `${info.label}${inc.count > 1 ? ` ×${inc.count}` : ''}`);
+      left.style.setProperty('--sev-color', info.color);
+      const btns = createEl('div', 'collab-chips');
+      const termBtn = createEl('button', 'chip-btn', 'Terminal');
+      termBtn.type = 'button';
+      termBtn.addEventListener('click', () => openAgentTerminal(inc.agentId));
+      const resBtn = createEl('button', 'chip-btn', 'Resolve');
+      resBtn.type = 'button';
+      resBtn.addEventListener('click', () => {
+        state.tracker.resolve(inc.agentId);
+        pushAgentLine(inc.agentId, '✓ incidents resolved manually');
+        syncAgentStatuses();
+        renderErrorsPanel();
+        renderOfficeDock();
+      });
+      btns.append(termBtn, resBtn);
+      top.append(left, btns);
+
+      li.appendChild(top);
+      li.appendChild(createEl('div', 'deliverable-meta', agentName));
+      li.appendChild(createEl('div', 'briefing-summary', inc.text));
+      list.appendChild(li);
+    }
+    card.appendChild(list);
+  }
+
+  els.errorsContent.appendChild(card);
+}
+
+function renderAgentTerminal() {
+  if (!els.terminalOutput || !state.terminalAgentId) return;
+  const id = state.terminalAgentId;
+  const agent = state.team.find((a) => a.id === id);
+  const name = id === 'jarvis' ? 'J.A.R.V.I.S.' : agent?.name || id;
+  const level = state.tracker.agentLevel(id);
+  const panic = level >= state.panicThreshold;
+
+  if (els.terminalTitle) {
+    els.terminalTitle.textContent = `${name} — terminal${panic ? ' [ALERT]' : ''}`;
+  }
+
+  clearElement(els.terminalOutput);
+  const running = (state.currentMission?.tasks ?? []).find((t) => t.agentId === id && t.status === 'running');
+  const headerLine = createEl(
+    'div',
+    'terminal-line terminal-head-line',
+    `role: ${agent?.role || 'AI Controller'} · status: ${running ? `working (${running.title})` : officeScene?.getActorActivityLabel(id) || 'on campus'}`
+  );
+  els.terminalOutput.appendChild(headerLine);
+
+  const lines = state.agentFeed.get(id) || [
+    { text: `$ ${id} --stream`, level: 0, time: 'now' },
+    { text: `model=${agent?.model || 'local-jarvis'} · 0 errors`, level: 0, time: 'now' }
+  ];
+  for (const line of lines) {
+    const row = createEl('div', `terminal-line sev-lvl-${line.level || 0}`);
+    if (line.time) row.appendChild(createEl('span', 'terminal-ts', `${line.time} `));
+    row.appendChild(document.createTextNode(line.text));
+    els.terminalOutput.appendChild(row);
+  }
+  els.terminalOutput.scrollTop = els.terminalOutput.scrollHeight;
+}
+
+function openAgentTerminal(agentId) {
+  if (agentId === 'jarvis') {
+    selectDesk('jarvis', true);
+    return;
+  }
+  state.terminalAgentId = agentId;
+  renderAgentTerminal();
+  if (!els.terminalDialog?.open) {
+    els.terminalDialog?.showModal();
+  }
+  els.terminalCmdInput?.focus();
+}
+
+function updateSkyBarUi(info) {
+  if (!info || !els.skyBar) return;
+  els.skyBar.hidden = false;
+  for (const btn of els.skyBar.querySelectorAll('.sky-btn')) {
+    btn.classList.toggle('active', btn.dataset.sky === info.mode);
+  }
+  if (els.skyMeta) {
+    els.skyMeta.textContent = `${info.locationLabel} · ${info.timeText} · Sun ${info.elevation}°`;
+  }
+  const fmt = (d) =>
+    d ? `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}` : '--:--';
+  if (els.skySunrise) els.skySunrise.textContent = fmt(info.sunrise);
+  if (els.skySunset) els.skySunset.textContent = fmt(info.sunset);
+  if (els.skyTimeSlider && document.activeElement !== els.skyTimeSlider) {
+    els.skyTimeSlider.value = String(info.timeMinutes ?? 600);
+  }
+}
+
 function renderOfficeDock() {
   clearElement(els.officeDock);
 
@@ -207,28 +677,53 @@ function renderOfficeDock() {
         : '3D Core Ready';
 
   const entries = [
-    { id: 'jarvis', name: 'J.A.R.V.I.S.', accent: '#38bdf8', status: jarvisStatus },
+    {
+      id: 'jarvis',
+      name: 'J.A.R.V.I.S.',
+      role: 'AI Controller',
+      accent: '#38bdf8',
+      status: jarvisStatus
+    },
     ...state.team.map((agent) => ({
       id: agent.id,
       name: agent.name,
+      role: agent.title || agent.role || agent.departmentName || '',
       accent: agent.accent,
       status: officeScene ? officeScene.getActorActivityLabel(agent.id) : 'On Campus'
     }))
   ];
 
   for (const item of entries) {
-    const btn = createEl('button', `dock-btn ${state.selectedDeskId === item.id ? 'selected' : ''}`);
+    const sevLevel = item.id === 'jarvis' ? 0 : state.tracker.agentLevel(item.id);
+    const sev = sevLevel >= 1 ? severityInfo(sevLevel) : null;
+    const isWorking =
+      item.status.includes('Working') ||
+      item.status.includes('Coding') ||
+      (item.id === 'jarvis' && item.status === 'Orchestrating');
+    const isWalking = item.status.includes('Walking');
+    const stateCls = isWorking ? 'is-working' : isWalking ? 'is-walking' : '';
+
+    const btn = createEl(
+      'button',
+      `dock-btn ${state.selectedDeskId === item.id ? 'selected' : ''} ${stateCls} ${sev ? 'has-sev' : ''}`.trim()
+    );
+    if (sev) btn.style.setProperty('--sev-color', sev.color);
     btn.type = 'button';
     btn.setAttribute('aria-pressed', String(state.selectedDeskId === item.id));
 
-    const head = createEl('span', 'dock-btn-head');
-    const dot = createEl('span', 'dock-dot');
-    dot.style.setProperty('--dot-color', item.accent);
-    head.appendChild(dot);
-    head.appendChild(document.createTextNode(item.name));
+    const avatar = createEl('span', 'dock-avatar', item.name.charAt(0).toUpperCase());
+    avatar.style.setProperty('--dot-color', sev ? sev.color : item.accent);
 
-    btn.appendChild(head);
-    btn.appendChild(createEl('span', 'dock-btn-status', item.status));
+    const meta = createEl('span', 'dock-meta');
+    const head = createEl('span', 'dock-btn-head', item.name);
+    const roleEl = createEl('span', 'dock-role', item.role);
+    const statusRow = createEl('span', 'dock-btn-status');
+    const stateDot = createEl('span', 'state-dot');
+    statusRow.append(stateDot, document.createTextNode(sev ? `${sev.label} · ${item.status}` : item.status));
+
+    meta.append(head, roleEl, statusRow);
+    btn.append(avatar, meta);
+
     btn.addEventListener('click', () => selectDesk(item.id, true));
     btn.addEventListener('dragover', (ev) => {
       ev.preventDefault();
@@ -249,6 +744,8 @@ function renderOfficeDock() {
     });
     els.officeDock.appendChild(btn);
   }
+
+  renderOfficeHud();
 }
 
 function renderOfficeFloor() {
@@ -561,6 +1058,7 @@ async function sendDirectChat(agentId, text) {
   const history = state.agentChats.get(agentId);
   const priorHistory = history.slice(-8);
   history.push({ role: 'user', sender: 'You', text, time: new Date().toISOString() });
+  officeScene?.showPlayerSpeech?.(text, 4.5);
   state.typingAgentId = agentId;
   renderDeskInspector();
 
@@ -570,6 +1068,7 @@ async function sendDirectChat(agentId, text) {
       : officeScene?.getActorActivityLabel(agentId) || 'On Campus';
 
   try {
+    pushAgentLine(agentId, `> ${text}`);
     const res = await fetch(`/api/agents/${encodeURIComponent(agentId)}/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -585,6 +1084,7 @@ async function sendDirectChat(agentId, text) {
     });
     const data = await res.json();
     const replyText = res.ok ? data.reply : data.message || 'Unable to reply right now.';
+    pushAgentLine(agentId, replyText.split('\n')[0], res.ok ? undefined : 'error');
     history.push({
       role: 'agent',
       sender: data.agentName || agentId,
@@ -599,6 +1099,7 @@ async function sendDirectChat(agentId, text) {
       officeScene.showAgentSpeech(agentId, replyText.slice(0, 26), 5);
     }
   } catch {
+    pushAgentLine(agentId, 'Connection error reaching this AI specialist.', 'error');
     history.push({
       role: 'agent',
       sender: agentId,
@@ -609,8 +1110,11 @@ async function sendDirectChat(agentId, text) {
     state.typingAgentId = null;
   }
 
+  syncAgentStatuses();
   renderDeskInspector();
+  renderErrorsPanel();
   renderOfficeDock();
+  if (state.terminalAgentId === agentId && els.terminalDialog?.open) renderAgentTerminal();
 }
 
 function buildDirectChatSection(agentId, agentName, collaborators = []) {
@@ -1114,14 +1618,18 @@ function updateGuideSpeechFromMission() {
 }
 
 function renderAll() {
+  ingestMissionTelemetry();
+  syncAgentStatuses();
   renderPipeline();
   renderOfficeFloor();
   renderDeskInspector();
+  renderErrorsPanel();
   renderCeoStudio();
   renderBriefing();
   renderDag();
   renderLogs();
   updateGuideSpeechFromMission();
+  if (els.terminalDialog?.open) renderAgentTerminal();
 }
 
 function toggleCeoOfficeFocus(forceState = null) {
@@ -1185,7 +1693,7 @@ function subscribeToMission(streamUrl, missionId) {
 
   for (const eventName of ['stage', 'plan', 'task', 'log']) {
     source.addEventListener(eventName, () => {
-      refreshFromServer().catch(() => {});
+      refreshFromServer().catch(() => { });
     });
   }
 
@@ -1197,7 +1705,7 @@ function subscribeToMission(streamUrl, missionId) {
   });
 
   source.addEventListener('error', async () => {
-    await refreshFromServer().catch(() => {});
+    await refreshFromServer().catch(() => { });
     els.dispatchBtn.disabled = false;
     source.close();
     state.activeSource = null;
@@ -1324,9 +1832,9 @@ function setupDragAndDropTasks() {
       els.officeFloor?.classList.remove('drag-over');
       const targetId = officeScene
         ? officeScene.getDropTargetAt(
-            officeScene.toLogicalPoint(ev).x,
-            officeScene.toLogicalPoint(ev).y
-          ) || 'jarvis'
+          officeScene.toLogicalPoint(ev).x,
+          officeScene.toLogicalPoint(ev).y
+        ) || 'jarvis'
         : 'jarvis';
       officeScene?.clearDragHover();
       const taskText =
@@ -1337,7 +1845,7 @@ function setupDragAndDropTasks() {
 }
 
 async function init() {
-  officeScene = new Office3DScene(els.officeCanvas, {
+  const sceneOptions = {
     onSelectAgent: (id) => {
       if (typeof id === 'string' && id.startsWith('room:')) {
         const roomId = id.slice(5);
@@ -1363,8 +1871,49 @@ async function init() {
       });
       if (state.banterLogs.length > 30) state.banterLogs.shift();
       renderLogs();
+    },
+    onPlayerProximity: (agentId) => setPlayerPrompt(agentId),
+    onPlayerInteract: (agentId) => {
+      selectDesk(agentId, true);
+      requestAnimationFrame(() => {
+        els.deskInspectorContent?.querySelector('.agent-chat-form input')?.focus();
+      });
+    },
+    onOpenTerminal: (agentId) => openAgentTerminal(agentId),
+    onBossToggle: () => els.join3dBtn?.click(),
+    onCinemaChange: (active) => {
+      if (els.camCinema) {
+        els.camCinema.classList.toggle('active-chip', Boolean(active));
+        els.camCinema.textContent = active ? 'Cinema: On (C)' : 'Cinema (C)';
+      }
+    },
+    onSkyUpdate: (info) => updateSkyBarUi(info),
+    onPlayerLeave: () => updatePlayerUi()
+  };
+
+  officeScene = await createOfficeScene(sceneOptions);
+  if (officeScene?.joinAsPlayer && els.join3dBtn) {
+    els.join3dBtn.hidden = false;
+  }
+  if (officeScene?.toggleCinemaMode && els.camCinema) {
+    els.camCinema.hidden = false;
+  }
+  if (officeScene?.getSkyInfo?.()) {
+    updateSkyBarUi(officeScene.getSkyInfo());
+  }
+  if (officeScene?.setQuality && els.camQuality) {
+    const q = officeScene.getQuality();
+    els.camQuality.hidden = false;
+    els.camQuality.textContent = `Quality: ${q.charAt(0).toUpperCase()}${q.slice(1)}`;
+  }
+
+  setInterval(() => {
+    if (state.tracker.tick()) {
+      syncAgentStatuses();
+      renderErrorsPanel();
+      renderOfficeDock();
     }
-  });
+  }, 10000);
 
   const [healthRes, teamRes, guideRes, upgradesRes] = await Promise.all([
     fetch('/api/health'),
@@ -1405,6 +1954,97 @@ els.camRotRight.addEventListener('click', () => officeScene?.rotateCamera(Math.P
 els.camZoomIn.addEventListener('click', () => officeScene?.adjustZoom(0.14));
 els.camZoomOut.addEventListener('click', () => officeScene?.adjustZoom(-0.14));
 els.camReset.addEventListener('click', () => focusDepartmentView(null));
+els.camQuality?.addEventListener('click', () => {
+  if (!officeScene?.setQuality) return;
+  const order = ['high', 'balanced', 'performance'];
+  const next = order[(order.indexOf(officeScene.getQuality()) + 1) % order.length];
+  officeScene.setQuality(next);
+  els.camQuality.textContent = `Quality: ${next.charAt(0).toUpperCase()}${next.slice(1)}`;
+});
+els.camFullscreen?.addEventListener('click', () => {
+  if (!document.fullscreenElement) {
+    els.officeFloor?.requestFullscreen?.().catch(() => { });
+  } else {
+    document.exitFullscreen?.().catch(() => { });
+  }
+});
+document.addEventListener('fullscreenchange', () => {
+  if (!els.camFullscreen) return;
+  const active = document.fullscreenElement === els.officeFloor;
+  els.camFullscreen.textContent = active ? 'Exit Fullscreen' : 'Fullscreen';
+  els.camFullscreen.classList.toggle('active-chip', active);
+});
+
+els.camCinema?.addEventListener('click', () => {
+  officeScene?.toggleCinemaMode?.();
+});
+
+els.incidentBanner?.addEventListener('click', () => {
+  const aid = els.incidentBanner.dataset.agentId;
+  if (aid) openAgentTerminal(aid);
+});
+
+els.skyBar?.addEventListener('click', (ev) => {
+  const btn = ev.target.closest?.('.sky-btn');
+  if (btn && btn.dataset.sky) {
+    officeScene?.setSkyMode?.(btn.dataset.sky);
+  }
+});
+
+els.skyTimeSlider?.addEventListener('input', () => {
+  officeScene?.setSkyTimeMinutes?.(Number(els.skyTimeSlider.value));
+});
+
+els.skyNowBtn?.addEventListener('click', () => {
+  officeScene?.setSkyTimeMinutes?.(null);
+});
+
+els.terminalClose?.addEventListener('click', () => els.terminalDialog?.close());
+els.terminalChatBtn?.addEventListener('click', () => {
+  const aid = state.terminalAgentId;
+  els.terminalDialog?.close();
+  if (aid) selectDesk(aid, true);
+});
+els.terminalCmdForm?.addEventListener('submit', (ev) => {
+  ev.preventDefault();
+  const val = els.terminalCmdInput?.value.trim();
+  const aid = state.terminalAgentId;
+  if (!val || !aid) return;
+  els.terminalCmdInput.value = '';
+  sendDirectChat(aid, val);
+});
+
+// Join the 3D office as a player avatar
+els.join3dBtn?.addEventListener('click', () => {
+  if (!officeScene?.joinAsPlayer) return;
+  if (officeScene.isPlayerActive()) {
+    officeScene.leavePlayer(false);
+    updatePlayerUi();
+    return;
+  }
+  openJoinDialog();
+});
+
+els.joinCancel?.addEventListener('click', () => els.joinDialog?.close());
+els.joinName?.addEventListener('input', updateJoinPreview);
+els.joinSwatches?.addEventListener('change', updateJoinPreview);
+
+els.joinForm?.addEventListener('submit', (ev) => {
+  ev.preventDefault();
+  const profile = readJoinForm();
+  try {
+    window.localStorage?.setItem(PLAYER_PROFILE_KEY, JSON.stringify(profile));
+  } catch {
+    // Ignore storage quota errors
+  }
+  els.joinDialog?.close();
+  state.activeDepartmentId = null;
+  state.ceoFocus = false;
+  renderDepartmentCamBar();
+  officeScene?.joinAsPlayer(profile);
+  updatePlayerUi();
+  els.officeFloor?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+});
 
 // Tabs
 for (const tabBtn of document.querySelectorAll('[role="tab"]')) {

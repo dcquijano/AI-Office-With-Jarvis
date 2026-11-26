@@ -1,275 +1,415 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>J.A.R.V.I.S. AI Office — Multi-Agent Command Center</title>
-    <link rel="stylesheet" href="/styles.css" />
-  </head>
-  <body>
-    <a class="skip-link" href="#main-content">Skip to workspace</a>
 
-    <header class="topbar">
-      <div class="brand">
-        <div class="jarvis-orb" aria-hidden="true"></div>
-        <div>
-          <h1>J.A.R.V.I.S. AI Office</h1>
-          <p class="subtitle">Multi-Agent Team &amp; Virtual Office · Inspired by microsoft/JARVIS</p>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>J.A.R.V.I.S. AI Office — Multi-Agent Command Center</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+
+<body>
+  <a class="skip-link" href="#main-content">Skip to workspace</a>
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="jarvis-orb" aria-hidden="true"></div>
+      <div>
+        <h1>J.A.R.V.I.S. AI Office</h1>
+        <p class="subtitle">Multi-Agent Team &amp; Virtual Office · Inspired by microsoft/JARVIS</p>
+      </div>
+    </div>
+
+    <div class="topbar-actions">
+      <span id="mode-pill" class="pill pill-neutral">Checking engine...</span>
+      <button id="voice-toggle-btn" type="button" class="btn btn-secondary" aria-pressed="false"
+        title="Toggle spoken AI voice replies">
+        AI Voice: Off
+      </button>
+      <button id="tour-btn" type="button" class="btn btn-secondary">Guided Tour</button>
+      <button id="settings-btn" type="button" class="btn btn-secondary">LLM Settings</button>
+    </div>
+  </header>
+
+  <main id="main-content" class="layout">
+    <!-- Top Command Bar: J.A.R.V.I.S. Guide + Mission Directive side-by-side so 3D Campus sits above the fold -->
+    <div class="top-command-grid">
+      <section class="jarvis-guide-card" aria-label="J.A.R.V.I.S. Guide">
+        <div class="guide-header">
+          <div class="guide-avatar" aria-hidden="true">J</div>
+          <div class="guide-copy">
+            <div class="guide-title-row">
+              <h2>J.A.R.V.I.S. Guide</h2>
+              <span id="guide-stage-tag" class="tag">Standing By</span>
+            </div>
+            <p id="jarvis-speech" class="guide-speech" aria-live="polite">
+              Initializing office telemetry...
+            </p>
+          </div>
         </div>
-      </div>
 
-      <div class="topbar-actions">
-        <span id="mode-pill" class="pill pill-neutral">Checking engine...</span>
-        <button id="voice-toggle-btn" type="button" class="btn btn-secondary" aria-pressed="false" title="Toggle spoken AI voice replies">
-          AI Voice: Off
-        </button>
-        <button id="tour-btn" type="button" class="btn btn-secondary">Guided Tour</button>
-        <button id="settings-btn" type="button" class="btn btn-secondary">LLM Settings</button>
-      </div>
-    </header>
-
-    <main id="main-content" class="layout">
-      <!-- Top Command Bar: J.A.R.V.I.S. Guide + Mission Directive side-by-side so 3D Campus sits above the fold -->
-      <div class="top-command-grid">
-        <section class="jarvis-guide-card" aria-label="J.A.R.V.I.S. Guide">
-          <div class="guide-header">
-            <div class="guide-avatar" aria-hidden="true">J</div>
-            <div class="guide-copy">
-              <div class="guide-title-row">
-                <h2>J.A.R.V.I.S. Guide</h2>
-                <span id="guide-stage-tag" class="tag">Standing By</span>
-              </div>
-              <p id="jarvis-speech" class="guide-speech" aria-live="polite">
-                Initializing office telemetry...
-              </p>
-            </div>
+        <div id="tour-controls" class="tour-controls" hidden>
+          <span id="tour-progress" class="tour-progress">Step 1 of 5</span>
+          <div class="tour-buttons">
+            <button id="tour-prev" type="button" class="btn btn-ghost">Previous</button>
+            <button id="tour-next" type="button" class="btn btn-primary">Next Step</button>
+            <button id="tour-close" type="button" class="btn btn-ghost">Exit Tour</button>
           </div>
+        </div>
 
-          <div id="tour-controls" class="tour-controls" hidden>
-            <span id="tour-progress" class="tour-progress">Step 1 of 5</span>
-            <div class="tour-buttons">
-              <button id="tour-prev" type="button" class="btn btn-ghost">Previous</button>
-              <button id="tour-next" type="button" class="btn btn-primary">Next Step</button>
-              <button id="tour-close" type="button" class="btn btn-ghost">Exit Tour</button>
-            </div>
-          </div>
-
-          <form id="guide-ask-form" class="guide-ask-form">
-            <label class="sr-only" for="guide-question-input">Ask J.A.R.V.I.S. a question</label>
-            <input
-              id="guide-question-input"
-              name="question"
-              type="text"
-              maxlength="500"
-              placeholder="Ask J.A.R.V.I.S. (e.g., 'How does the 4-stage pipeline work?' or 'Who is in the office?')"
-            />
-            <button type="submit" class="btn btn-secondary">Ask J.A.R.V.I.S.</button>
-          </form>
-          <div id="guide-answer-box" class="guide-answer" hidden aria-live="polite"></div>
-        </section>
-
-        <!-- Mission Input & Controls -->
-        <section class="command-panel" aria-labelledby="mission-heading">
-          <div class="panel-header">
-            <h2 id="mission-heading">Mission Directive</h2>
-            <div id="preset-list" class="preset-chips" aria-label="Sample missions"></div>
-          </div>
-
-          <form id="mission-form" class="mission-form" novalidate>
-            <div class="field-group">
-              <label for="mission-prompt">What should the AI team build, research, or verify?</label>
-              <textarea
-                id="mission-prompt"
-                name="prompt"
-                rows="2"
-                maxlength="2000"
-                required
-                aria-describedby="mission-error"
-                placeholder="Example: Design the architecture, UX flow, and security checklist for a collaborative AI workspace..."
-              ></textarea>
-              <p id="mission-error" class="field-error" role="alert" hidden></p>
-            </div>
-
-            <div class="mission-controls-row">
-              <fieldset class="agent-filter">
-                <legend>Invited Office Specialists (leave all checked for auto-routing)</legend>
-                <div id="agent-checkboxes" class="agent-checkboxes"></div>
-              </fieldset>
-
-              <button id="dispatch-btn" type="submit" class="btn btn-primary btn-dispatch">
-                Dispatch Team
-              </button>
-            </div>
-          </form>
-        </section>
-      </div>
-
-      <!-- 4-Stage Pipeline Bar -->
-      <section class="pipeline-section" aria-label="Microsoft JARVIS 4-Stage Pipeline">
-        <ol id="pipeline-steps" class="pipeline-steps"></ol>
+        <form id="guide-ask-form" class="guide-ask-form">
+          <label class="sr-only" for="guide-question-input">Ask J.A.R.V.I.S. a question</label>
+          <input id="guide-question-input" name="question" type="text" maxlength="500"
+            placeholder="Ask J.A.R.V.I.S. (e.g., 'How does the 4-stage pipeline work?' or 'Who is in the office?')" />
+          <button type="submit" class="btn btn-secondary">Ask J.A.R.V.I.S.</button>
+        </form>
+        <div id="guide-answer-box" class="guide-answer" hidden aria-live="polite"></div>
       </section>
 
-      <!-- Main Workspace Split: Virtual Office Floor + Inspector/Briefing -->
-      <div class="workspace-grid">
-        <section class="office-panel" aria-labelledby="office-heading">
-          <div class="panel-header">
-            <div>
-              <h2 id="office-heading">3D AI Office &amp; Wellness Campus</h2>
-              <p class="panel-hint">Drag to rotate 3D view · Scroll to zoom · Click any AI to talk 1-on-1</p>
-            </div>
-            <div class="cam-controls" aria-label="3D Camera Controls">
-              <button id="cam-ceo-focus" type="button" class="chip-btn" title="Zoom inside CEO Executive Office">Enter CEO Office</button>
-              <button id="cam-rot-left" type="button" class="chip-btn" title="Rotate 3D Left">Rotate L</button>
-              <button id="cam-rot-right" type="button" class="chip-btn" title="Rotate 3D Right">Rotate R</button>
-              <button id="cam-zoom-in" type="button" class="chip-btn" title="Zoom In">+</button>
-              <button id="cam-zoom-out" type="button" class="chip-btn" title="Zoom Out">-</button>
-              <button id="cam-reset" type="button" class="chip-btn" title="Reset 3D Camera">Full Campus</button>
-              <span id="office-activity-badge" class="tag">Idle</span>
-            </div>
+      <!-- Mission Input & Controls -->
+      <section class="command-panel" aria-labelledby="mission-heading">
+        <div class="panel-header">
+          <h2 id="mission-heading">Mission Directive</h2>
+          <div id="preset-list" class="preset-chips" aria-label="Sample missions"></div>
+        </div>
+
+        <form id="mission-form" class="mission-form" novalidate>
+          <div class="field-group">
+            <label for="mission-prompt">What should the AI team build, research, or verify?</label>
+            <textarea id="mission-prompt" name="prompt" rows="2" maxlength="2000" required
+              aria-describedby="mission-error"
+              placeholder="Example: Design the architecture, UX flow, and security checklist for a collaborative AI workspace..."></textarea>
+            <p id="mission-error" class="field-error" role="alert" hidden></p>
           </div>
 
-          <div id="task-drag-bar" class="task-drag-bar" aria-label="Drag and drop tasks onto AI specialists">
-            <div class="drag-custom-group">
-              <label class="sr-only" for="drag-task-input">Quick task to drag onto an AI</label>
-              <input
-                id="drag-task-input"
-                class="drag-task-input"
-                type="text"
-                maxlength="300"
-                placeholder="Type a task &amp; drag card onto any 3D AI or dock button..."
-              />
-              <span
-                id="draggable-task-card"
-                class="drag-task-card"
-                draggable="true"
-                title="Drag this task card onto any 3D character or dock specialist"
-              >&#8942;&#8942; Drag Task</span>
-            </div>
-            <div class="drag-presets-group">
-              <span class="agent-actions-label">Drop onto AI:</span>
-              <span class="drag-task-chip" draggable="true" data-task-prompt="Build modular backend API endpoint with input validation and error handling">Build API</span>
-              <span class="drag-task-chip" draggable="true" data-task-prompt="Design clean interactive UI layout with accessible WCAG AA contrast">Design UI</span>
-              <span class="drag-task-chip" draggable="true" data-task-prompt="Audit authentication, SSRF, XSS, and secrets trust boundaries">Security Audit</span>
-              <span class="drag-task-chip" draggable="true" data-task-prompt="Write unit and integration tests covering boundary and error cases">Write QA Tests</span>
-              <span class="drag-task-chip" draggable="true" data-task-prompt="Research architecture options, trade-offs, and recommended benchmarks">Research Plan</span>
-              <span class="drag-task-chip" draggable="true" data-task-prompt="Configure CI checks, health endpoints, and zero-downtime rollback steps">CI/CD Setup</span>
-            </div>
-          </div>
+          <div class="mission-controls-row">
+            <fieldset class="agent-filter">
+              <legend>Invited Office Specialists (leave all checked for auto-routing)</legend>
+              <div id="agent-checkboxes" class="agent-checkboxes"></div>
+            </fieldset>
 
-          <div id="dept-cam-bar" class="dept-cam-bar" aria-label="Focus department on 3D campus"></div>
-
-          <div id="office-floor" class="office-floor">
-            <canvas
-              id="office-canvas"
-              class="office-canvas"
-              width="1200"
-              height="720"
-              role="img"
-              aria-label="Interactive 3D Multi-Department AI Office Campus with Executive Core, Engineering, Design and QA, Infrastructure and Server Vault, Strategy and Lobby, and Wellness Sports Club"
-            ></canvas>
-          </div>
-          <div id="office-dock" class="office-dock" aria-label="Quick select office specialist"></div>
-        </section>
-
-        <aside class="inspector-panel" aria-label="Specialist Inspector and Briefing">
-          <div class="tabs" role="tablist" aria-label="Mission Details">
-            <button type="button" role="tab" id="tab-briefing" aria-selected="true" aria-controls="panel-briefing" class="tab-btn active">
-              Briefing
-            </button>
-            <button type="button" role="tab" id="tab-desk" aria-selected="false" aria-controls="panel-desk" class="tab-btn">
-              Talk to AI
-            </button>
-            <button type="button" role="tab" id="tab-ceo-studio" aria-selected="false" aria-controls="panel-ceo-studio" class="tab-btn">
-              Departments &amp; Builder
-            </button>
-            <button type="button" role="tab" id="tab-dag" aria-selected="false" aria-controls="panel-dag" class="tab-btn">
-              Task DAG
-            </button>
-            <button type="button" role="tab" id="tab-logs" aria-selected="false" aria-controls="panel-logs" class="tab-btn">
-              AI Chatter &amp; Log
+            <button id="dispatch-btn" type="submit" class="btn btn-primary btn-dispatch">
+              Dispatch Team
             </button>
           </div>
+        </form>
+      </section>
+    </div>
 
-          <div id="panel-briefing" role="tabpanel" aria-labelledby="tab-briefing" class="tab-panel">
-            <div id="briefing-content" class="empty-state">
-              Dispatch a mission or pick a sample prompt above. J.A.R.V.I.S. will coordinate the office and present your executive briefing here.
+    <!-- 4-Stage Pipeline Bar -->
+    <section class="pipeline-section" aria-label="Microsoft JARVIS 4-Stage Pipeline">
+      <ol id="pipeline-steps" class="pipeline-steps"></ol>
+    </section>
+
+    <!-- Main Workspace Split: Virtual Office Floor + Inspector/Briefing -->
+    <div class="workspace-grid">
+      <section class="office-panel" aria-labelledby="office-heading">
+        <div class="panel-header">
+          <div>
+            <h2 id="office-heading">Realistic 3D AI Office &amp; Wellness Campus</h2>
+            <p class="panel-hint">Drag to orbit · drag up/down to tilt · scroll to zoom · click any AI to talk 1-on-1
+            </p>
+          </div>
+          <div class="cam-controls" aria-label="3D Camera Controls">
+            <button id="join-3d-btn" type="button" class="btn btn-primary btn-join" hidden
+              title="Boss mode: walk the office and inspect agent terminals (B)">Boss Mode (B)</button>
+            <button id="cam-cinema" type="button" class="chip-btn" hidden
+              title="Cinema camera: drift and follow active agents (C)">Cinema (C)</button>
+            <button id="cam-ceo-focus" type="button" class="chip-btn" title="Zoom inside CEO Executive Office">Enter CEO
+              Office</button>
+            <button id="cam-rot-left" type="button" class="chip-btn" title="Rotate 3D Left">Rotate L</button>
+            <button id="cam-rot-right" type="button" class="chip-btn" title="Rotate 3D Right">Rotate R</button>
+            <button id="cam-zoom-in" type="button" class="chip-btn" title="Zoom In">+</button>
+            <button id="cam-zoom-out" type="button" class="chip-btn" title="Zoom Out">-</button>
+            <button id="cam-reset" type="button" class="chip-btn" title="Reset 3D Camera">Full Campus</button>
+            <button id="cam-quality" type="button" class="chip-btn" hidden title="Cycle 3D rendering quality">Quality:
+              High</button>
+            <button id="cam-fullscreen" type="button" class="chip-btn" title="Fullscreen 3D view">Fullscreen</button>
+            <span id="office-activity-badge" class="tag">Idle</span>
+          </div>
+        </div>
+
+        <div id="task-drag-bar" class="task-drag-bar" aria-label="Drag and drop tasks onto AI specialists">
+          <div class="drag-custom-group">
+            <label class="sr-only" for="drag-task-input">Quick task to drag onto an AI</label>
+            <input id="drag-task-input" class="drag-task-input" type="text" maxlength="300"
+              placeholder="Type a task &amp; drag card onto any 3D AI or dock button..." />
+            <span id="draggable-task-card" class="drag-task-card" draggable="true"
+              title="Drag this task card onto any 3D character or dock specialist">&#8942;&#8942; Drag Task</span>
+          </div>
+          <div class="drag-presets-group">
+            <span class="agent-actions-label">Drop onto AI:</span>
+            <span class="drag-task-chip" draggable="true"
+              data-task-prompt="Build modular backend API endpoint with input validation and error handling">Build
+              API</span>
+            <span class="drag-task-chip" draggable="true"
+              data-task-prompt="Design clean interactive UI layout with accessible WCAG AA contrast">Design UI</span>
+            <span class="drag-task-chip" draggable="true"
+              data-task-prompt="Audit authentication, SSRF, XSS, and secrets trust boundaries">Security Audit</span>
+            <span class="drag-task-chip" draggable="true"
+              data-task-prompt="Write unit and integration tests covering boundary and error cases">Write QA
+              Tests</span>
+            <span class="drag-task-chip" draggable="true"
+              data-task-prompt="Research architecture options, trade-offs, and recommended benchmarks">Research
+              Plan</span>
+            <span class="drag-task-chip" draggable="true"
+              data-task-prompt="Configure CI checks, health endpoints, and zero-downtime rollback steps">CI/CD
+              Setup</span>
+          </div>
+        </div>
+
+        <div id="dept-cam-bar" class="dept-cam-bar" aria-label="Focus department on 3D campus"></div>
+
+        <div id="office-floor" class="office-floor">
+          <canvas id="office-canvas" class="office-canvas" width="1200" height="720" role="img"
+            aria-label="Interactive 3D Multi-Department AI Office Campus with Executive Core, Engineering, Design and QA, Infrastructure and Server Vault, Strategy and Lobby, and Wellness Sports Club"></canvas>
+          <div id="office-hud" class="office-hud" aria-hidden="true"></div>
+          <button id="incident-banner" type="button" class="incident-banner" hidden></button>
+          <div id="office-join-prompt" class="office-join-prompt" aria-live="polite" hidden></div>
+          <div id="office-controls-hint" class="office-controls-hint" hidden>
+            <span><span class="kbd">W</span><span class="kbd">A</span><span class="kbd">S</span><span class="kbd">D</span>Move</span>
+            <span><span class="kbd">⇧</span>Run</span>
+            <span>Drag to look · Scroll to zoom</span>
+            <span><span class="kbd">E</span>Open terminal</span>
+            <span><span class="kbd">V</span>First/Third person</span>
+            <span><span class="kbd">Esc</span>Leave</span>
+          </div>
+        </div>
+        <div id="office-dock" class="office-dock" aria-label="Quick select office specialist"></div>
+      </section>
+
+      <aside class="inspector-panel" aria-label="Specialist Inspector and Briefing">
+        <div id="sky-bar" class="sky-bar" hidden aria-label="Real-sun sky lighting">
+          <div class="sky-bar-top">
+            <div class="sky-seg" role="group" aria-label="Sky mode">
+              <button type="button" class="sky-btn active" data-sky="auto">Auto</button>
+              <button type="button" class="sky-btn" data-sky="day">Day</button>
+              <button type="button" class="sky-btn" data-sky="night">Night</button>
             </div>
+            <span id="sky-meta" class="sky-meta">Sun --°</span>
           </div>
+          <div class="sky-slider-row">
+            <span id="sky-sunrise" class="sky-time-label">06:00</span>
+            <input id="sky-time-slider" type="range" min="0" max="1439" step="5" value="600" aria-label="Preview time of day" />
+            <span id="sky-sunset" class="sky-time-label">18:00</span>
+            <button id="sky-now-btn" type="button" class="chip-btn" title="Sync back to real local time">Now</button>
+          </div>
+        </div>
 
-          <div id="panel-desk" role="tabpanel" aria-labelledby="tab-desk" class="tab-panel" hidden>
-            <div id="desk-inspector-content"></div>
-          </div>
+        <div class="tabs" role="tablist" aria-label="Mission Details">
+          <button type="button" role="tab" id="tab-briefing" aria-selected="true" aria-controls="panel-briefing"
+            class="tab-btn active">
+            Briefing
+          </button>
+          <button type="button" role="tab" id="tab-desk" aria-selected="false" aria-controls="panel-desk"
+            class="tab-btn">
+            Talk to AI
+          </button>
+          <button type="button" role="tab" id="tab-errors" aria-selected="false" aria-controls="panel-errors"
+            class="tab-btn">
+            Errors <span id="errors-badge" class="tag" hidden>0</span>
+          </button>
+          <button type="button" role="tab" id="tab-ceo-studio" aria-selected="false" aria-controls="panel-ceo-studio"
+            class="tab-btn">
+            Departments &amp; Builder
+          </button>
+          <button type="button" role="tab" id="tab-dag" aria-selected="false" aria-controls="panel-dag" class="tab-btn">
+            Task DAG
+          </button>
+          <button type="button" role="tab" id="tab-logs" aria-selected="false" aria-controls="panel-logs"
+            class="tab-btn">
+            AI Chatter &amp; Log
+          </button>
+        </div>
 
-          <div id="panel-ceo-studio" role="tabpanel" aria-labelledby="tab-ceo-studio" class="tab-panel" hidden>
-            <div id="ceo-studio-content"></div>
+        <div id="panel-briefing" role="tabpanel" aria-labelledby="tab-briefing" class="tab-panel">
+          <div id="briefing-content" class="empty-state">
+            Dispatch a mission or pick a sample prompt above. J.A.R.V.I.S. will coordinate the office and present your
+            executive briefing here.
           </div>
+        </div>
 
-          <div id="panel-dag" role="tabpanel" aria-labelledby="tab-dag" class="tab-panel" hidden>
-            <div id="dag-content" class="empty-state">
-              No task dependency graph planned yet.
-            </div>
-          </div>
+        <div id="panel-desk" role="tabpanel" aria-labelledby="tab-desk" class="tab-panel" hidden>
+          <div id="desk-inspector-content"></div>
+        </div>
 
-          <div id="panel-logs" role="tabpanel" aria-labelledby="tab-logs" class="tab-panel" hidden>
-            <ul id="comms-log-list" class="comms-log-list">
-              <li class="log-empty">Waiting for mission telemetry...</li>
-            </ul>
+        <div id="panel-errors" role="tabpanel" aria-labelledby="tab-errors" class="tab-panel" hidden>
+          <div id="errors-content"></div>
+        </div>
+
+        <div id="panel-ceo-studio" role="tabpanel" aria-labelledby="tab-ceo-studio" class="tab-panel" hidden>
+          <div id="ceo-studio-content"></div>
+        </div>
+
+        <div id="panel-dag" role="tabpanel" aria-labelledby="tab-dag" class="tab-panel" hidden>
+          <div id="dag-content" class="empty-state">
+            No task dependency graph planned yet.
           </div>
-        </aside>
+        </div>
+
+        <div id="panel-logs" role="tabpanel" aria-labelledby="tab-logs" class="tab-panel" hidden>
+          <ul id="comms-log-list" class="comms-log-list">
+            <li class="log-empty">Waiting for mission telemetry...</li>
+          </ul>
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <!-- Optional Session LLM Settings Dialog -->
+  <dialog id="settings-dialog" class="modal" aria-labelledby="settings-title">
+    <form id="settings-form" method="dialog" class="modal-card">
+      <div class="modal-header">
+        <h2 id="settings-title">Optional Live LLM Settings</h2>
+        <button id="settings-close-x" type="button" class="btn btn-ghost" aria-label="Close settings">Close</button>
       </div>
-    </main>
+      <p class="modal-note">
+        By default, the office runs offline on the built-in Local JARVIS Engine. Connect your Google Account's
+        <strong>Gemini API key</strong> (free/Pro via Google AI Studio), an OpenAI key, or a local Qwen model. <em>Note:
+          Consumer Gemini Advanced web subscriptions don't unlock API OAuth directly — grab a Gemini API key from Google
+          AI Studio below.</em>
+      </p>
 
-    <!-- Optional Session LLM Settings Dialog -->
-    <dialog id="settings-dialog" class="modal" aria-labelledby="settings-title">
-      <form id="settings-form" method="dialog" class="modal-card">
-        <div class="modal-header">
-          <h2 id="settings-title">Optional Live LLM Settings</h2>
-          <button id="settings-close-x" type="button" class="btn btn-ghost" aria-label="Close settings">Close</button>
+      <div class="agent-actions-bar">
+        <span class="agent-actions-label">Google Gemini:</span>
+        <button id="preset-gemini-pro" type="button" class="chip-btn">Gemini 2.5 Pro</button>
+        <button id="preset-gemini-flash" type="button" class="chip-btn">Gemini 2.5 Flash</button>
+        <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer" class="chip-btn">Get
+          Gemini Key</a>
+      </div>
+
+      <div class="agent-actions-bar">
+        <span class="agent-actions-label">Local Qwen:</span>
+        <button id="preset-ollama-qwen" type="button" class="chip-btn">Ollama (qwen2.5:7b)</button>
+        <button id="preset-lmstudio-qwen" type="button" class="chip-btn">LM Studio (Qwen)</button>
+        <button id="detect-local-llm" type="button" class="chip-btn">Detect Local LLM</button>
+      </div>
+      <div id="local-llm-status" class="deliverable-item" hidden></div>
+
+      <div class="field-group">
+        <label for="setting-api-key">API Key (optional for cloud, blank for local Ollama/LM Studio)</label>
+        <input id="setting-api-key" type="password" autocomplete="off" placeholder="sk-... (optional for localhost)" />
+      </div>
+      <div class="field-group">
+        <label for="setting-base-url">Base URL (optional)</label>
+        <input id="setting-base-url" type="url" placeholder="https://api.openai.com/v1 or http://localhost:11434/v1" />
+      </div>
+      <div class="field-group">
+        <label for="setting-model">Planner/Worker Model (optional)</label>
+        <input id="setting-model" type="text" placeholder="gpt-4o-mini" />
+      </div>
+
+      <div class="modal-actions">
+        <button id="settings-clear" type="button" class="btn btn-ghost">Use Local Engine</button>
+        <button id="settings-save" type="submit" class="btn btn-primary">Save for Session</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Join the 3D Office: avatar builder -->
+  <dialog id="join-dialog" class="modal" aria-labelledby="join-title">
+    <form id="join-form" method="dialog" class="modal-card">
+      <div class="modal-header">
+        <h2 id="join-title">Join the 3D Office</h2>
+        <button id="join-cancel" type="button" class="btn btn-ghost">Cancel</button>
+      </div>
+      <p class="modal-note">
+        Create your avatar and walk around the campus with your AI team. Walk up to any agent and press
+        <span class="kbd">E</span> to talk to them.
+      </p>
+
+      <div class="join-preview">
+        <div id="join-preview-avatar" class="join-preview-avatar" aria-hidden="true">Y</div>
+        <div>
+          <strong id="join-preview-name">You</strong>
+          <div class="panel-hint">Guest Pass · All Departments</div>
         </div>
-        <p class="modal-note">
-          By default, the office runs offline on the built-in Local JARVIS Engine. Connect your Google Account's <strong>Gemini API key</strong> (free/Pro via Google AI Studio), an OpenAI key, or a local Qwen model. <em>Note: Consumer Gemini Advanced web subscriptions don't unlock API OAuth directly — grab a Gemini API key from Google AI Studio below.</em>
-        </p>
+      </div>
 
-        <div class="agent-actions-bar">
-          <span class="agent-actions-label">Google Gemini:</span>
-          <button id="preset-gemini-pro" type="button" class="chip-btn">Gemini 2.5 Pro</button>
-          <button id="preset-gemini-flash" type="button" class="chip-btn">Gemini 2.5 Flash</button>
-          <a
-            href="https://aistudio.google.com/apikey"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="chip-btn"
-          >Get Gemini Key</a>
+      <div class="field-group">
+        <label for="join-name">Display name</label>
+        <input id="join-name" type="text" maxlength="24" autocomplete="nickname" placeholder="Your name" />
+      </div>
+
+      <div class="field-group" role="radiogroup" aria-labelledby="join-color-label">
+        <label id="join-color-label">Outfit color</label>
+        <div id="join-swatches" class="swatch-row">
+          <label class="swatch" style="--swatch: #22d3ee" title="Cyan"><input type="radio" name="join-color" value="#22d3ee" aria-label="Cyan" checked /></label>
+          <label class="swatch" style="--swatch: #3b82f6" title="Blue"><input type="radio" name="join-color" value="#3b82f6" aria-label="Blue" /></label>
+          <label class="swatch" style="--swatch: #8b5cf6" title="Violet"><input type="radio" name="join-color" value="#8b5cf6" aria-label="Violet" /></label>
+          <label class="swatch" style="--swatch: #ec4899" title="Pink"><input type="radio" name="join-color" value="#ec4899" aria-label="Pink" /></label>
+          <label class="swatch" style="--swatch: #ef4444" title="Red"><input type="radio" name="join-color" value="#ef4444" aria-label="Red" /></label>
+          <label class="swatch" style="--swatch: #f97316" title="Orange"><input type="radio" name="join-color" value="#f97316" aria-label="Orange" /></label>
+          <label class="swatch" style="--swatch: #22c55e" title="Green"><input type="radio" name="join-color" value="#22c55e" aria-label="Green" /></label>
+          <label class="swatch" style="--swatch: #334155" title="Charcoal"><input type="radio" name="join-color" value="#334155" aria-label="Charcoal" /></label>
         </div>
+      </div>
 
-        <div class="agent-actions-bar">
-          <span class="agent-actions-label">Local Qwen:</span>
-          <button id="preset-ollama-qwen" type="button" class="chip-btn">Ollama (qwen2.5:7b)</button>
-          <button id="preset-lmstudio-qwen" type="button" class="chip-btn">LM Studio (Qwen)</button>
-          <button id="detect-local-llm" type="button" class="chip-btn">Detect Local LLM</button>
-        </div>
-        <div id="local-llm-status" class="deliverable-item" hidden></div>
-
+      <div class="join-grid">
         <div class="field-group">
-          <label for="setting-api-key">API Key (optional for cloud, blank for local Ollama/LM Studio)</label>
-          <input id="setting-api-key" type="password" autocomplete="off" placeholder="sk-... (optional for localhost)" />
+          <label for="join-hair">Hair style</label>
+          <select id="join-hair">
+            <option value="short">Short</option>
+            <option value="buzz">Buzz cut</option>
+            <option value="long">Long</option>
+            <option value="bob">Bob</option>
+            <option value="bun">Bun</option>
+            <option value="ponytail">Ponytail</option>
+          </select>
         </div>
         <div class="field-group">
-          <label for="setting-base-url">Base URL (optional)</label>
-          <input id="setting-base-url" type="url" placeholder="https://api.openai.com/v1 or http://localhost:11434/v1" />
+          <label for="join-skin">Skin tone</label>
+          <select id="join-skin">
+            <option value="#f5d0b5">Light</option>
+            <option value="#e8b88a" selected>Medium light</option>
+            <option value="#c68b59">Medium</option>
+            <option value="#a0663d">Medium dark</option>
+            <option value="#6b4226">Dark</option>
+          </select>
         </div>
-        <div class="field-group">
-          <label for="setting-model">Planner/Worker Model (optional)</label>
-          <input id="setting-model" type="text" placeholder="gpt-4o-mini" />
-        </div>
+      </div>
 
-        <div class="modal-actions">
-          <button id="settings-clear" type="button" class="btn btn-ghost">Use Local Engine</button>
-          <button id="settings-save" type="submit" class="btn btn-primary">Save for Session</button>
+      <label class="agent-check-label"><input id="join-glasses" type="checkbox" /> Wear glasses</label>
+
+      <div class="modal-actions">
+        <button type="submit" class="btn btn-primary">Enter Office</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Boss Mode Agent Terminal Modal -->
+  <dialog id="terminal-dialog" class="modal modal-terminal" aria-labelledby="terminal-title">
+    <div class="modal-card terminal-window">
+      <div class="terminal-titlebar">
+        <div class="terminal-dots" aria-hidden="true">
+          <span class="dot-red"></span>
+          <span class="dot-amber"></span>
+          <span class="dot-green"></span>
         </div>
+        <h2 id="terminal-title" class="terminal-title">Agent — terminal</h2>
+        <div class="terminal-actions">
+          <button id="terminal-chat-btn" type="button" class="chip-btn">Open Chat</button>
+          <button id="terminal-close" type="button" class="chip-btn">Close (Esc)</button>
+        </div>
+      </div>
+      <div id="terminal-output" class="terminal-output" aria-live="polite"></div>
+      <form id="terminal-cmd-form" class="terminal-cmd-form">
+        <span class="terminal-prompt" aria-hidden="true">&gt;</span>
+        <input id="terminal-cmd-input" type="text" maxlength="400" placeholder="Send a message or command to this agent..." />
+        <button type="submit" class="btn btn-primary">Send</button>
       </form>
-    </dialog>
+    </div>
+  </dialog>
 
-    <script type="module" src="/app.js"></script>
-  </body>
+  <script type="importmap">
+      {
+        "imports": {
+          "three": "/vendor/three/three.module.js",
+          "three/addons/": "/vendor/three/addons/"
+        }
+      }
+    </script>
+  <script type="module" src="/app.js"></script>
+</body>
+
 </html>
